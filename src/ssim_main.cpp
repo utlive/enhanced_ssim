@@ -220,7 +220,7 @@ static int run_wrapper(char *fmt, int width, int height, char *ref_path, char *d
 			goto fail_or_end;
 		}
 		// printf("Calling compute_ssim for frame %d/%d.\n", frame+1, s->num_frames);
-		ret = compute_ssim(ref_buf, dis_buf, s->width, s->height, data_stride, data_stride, window_type, window_len, window_stride, fr_scores + frame, 0, 0, 0);
+		ret = compute_ssim(ref_buf, dis_buf, s->width, s->height, data_stride, data_stride, window_type, window_len, window_stride, fr_scores + frame, 0, 0, 0, (frame == s->num_frames-1)); /* Clear windows after the last frame */
 		if (ret){
 		    fprintf(stderr, "compute ssim failed.\n");
 			goto fail_or_end;

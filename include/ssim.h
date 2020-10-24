@@ -18,4 +18,4 @@
 
 int compute_ssim(const float *ref, const float *cmp, int w, int h,
         int ref_stride, int cmp_stride, int window_type, int window_len, int window_stride, double *score, /* Abhinau added argument here. */
-        double *l_score, double *c_score, double *s_score);
+        double *l_score, double *c_score, double *s_score, int close_windows_on_end);

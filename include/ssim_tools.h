@@ -95,6 +95,10 @@ static const float g_square_window_v[SQUARE_LEN] = {
 	0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f
 };
 
+/* Helper functions to create and destroy custom windows */
+void _clear_custom_window(int *window_len, float ***window, float **window_h, float **window_v);
+int _init_custom_window(int window_len, float ***window, float **window_h, float **window_v);
+
 /* Holds intermediate SSIM values for map-reduce operation. */
 struct _ssim_int {
     double l;

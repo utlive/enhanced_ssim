@@ -39,8 +39,8 @@
 #define GAUSSIAN 1
 #define CUSTOM_SQUARE 2
 
-#define USE_IQA_INTEGRAL_IMAGE_MEAN
-// #define USE_IQA_CONVOLVE
+// #define USE_IQA_INTEGRAL_IMAGE_MEAN
+#define USE_IQA_CONVOLVE
 
 typedef float (*_iqa_get_pixel)(const float *img, int w, int h, int x, int y, float bnd_const);
 

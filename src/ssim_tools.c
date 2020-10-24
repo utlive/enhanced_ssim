@@ -46,6 +46,58 @@
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
+/* Free memory allocated to custom windows for use with _iqa_convolve */
+void _clear_custom_window(int *window_len, float ***window, float **window_h, float **window_v)
+{
+    if (*window){
+		for (int i = 0; i < *window_len; ++i)
+		    if ((*window)[i]) free((*window)[i]);
+		free(*window);
+	}
+	if (*window_h) free(*window_h);
+	if (*window_v) free(*window_v);
+
+	/* Setting pointers to 0 now that they have been freed */
+	*window = 0;
+	*window_h = 0;
+	*window_v = 0;
+
+	/* Setting window length to 0 now that the windows have been freed */
+	*window_len = 0;
+}
+
+/* Initialize custom rectangular windows to use with _iqa_convolve */
+int _init_custom_window(int window_len, float ***window, float **window_h, float **window_v)
+{
+    *window = 0;
+	*window_h = 0;
+	*window_v = 0;
+
+    *window = (float**)malloc(window_len*sizeof(float*));
+	if (!*window)
+		goto init_window_fail;
+	
+	for (int i = 0; i < window_len; ++i){
+		(*window)[i] = (float*)malloc(window_len*sizeof(float));
+		if (!(*window)[i])
+		    goto init_window_fail;
+	}
+
+    *window_h = (float*)malloc(window_len*sizeof(float));
+    *window_v = (float*)malloc(window_len*sizeof(float));
+
+	if (!(*window_h) || !(*window_v))
+		goto init_window_fail;
+
+    return 0;
+
+init_window_fail:
+    _clear_custom_window(&window_len, window, window_h, window_v);
+    printf("error: failed to malloc custom window.\n");
+	fflush(stdout);
+	return 1;
+}
+
 /* _calc_luminance */
 IQA_INLINE static double _calc_luminance(float mu1, float mu2, float C1, float alpha)
 {
@@ -148,8 +200,8 @@ float _iqa_ssim(float *ref, float *cmp, int w, int h, const struct _kernel *k,
 
 #ifdef USE_IQA_CONVOLVE
     /* Calculate mean */
-    iqa_convolve(ref, w, h, k, ref_mu, 0, 0);
-    iqa_convolve(cmp, w, h, k, cmp_mu, 0, 0);
+    _iqa_convolve(ref, w, h, k, ref_mu, 0, 0);
+    _iqa_convolve(cmp, w, h, k, cmp_mu, 0, 0);
 #elif defined(USE_IQA_INTEGRAL_IMAGE_MEAN)
 	/* Calculate means using integral images. Assumes that a square window was used. */
 	// printf("Calling integral image to compute means.\n");

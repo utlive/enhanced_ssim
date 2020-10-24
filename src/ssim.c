@@ -65,7 +65,7 @@ float _ssim_cov_reduce(int w, int h, void *ctx)
 
 int compute_ssim(const float *ref, const float *cmp, int w, int h,
         int ref_stride, int cmp_stride, int window_type, int window_len, int window_stride, double *score, /* Abhinau added argument here. */
-        double *l_score, double *c_score, double *s_score)
+        double *l_score, double *c_score, double *s_score, int clear_windows_on_end)
 {
 
     int ret = 1;
@@ -80,8 +80,13 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
     double ssim_sum=0.0;
     struct _map_reduce mr;
     const struct iqa_ssim_args *args = 0; /* 0 for default */
-    float **g_custom_square_window = 0, *g_custom_square_window_h = 0, *g_custom_square_window_v = 0;
-    
+
+#ifdef USE_IQA_CONVOLVE
+	/* Static variables to describe the current custom window */
+	static int _window_len = 0;
+    static float **g_custom_square_window = 0, *g_custom_square_window_h = 0, *g_custom_square_window_v = 0;
+#endif
+
 	/* check stride */
     int stride = ref_stride; /* stride in bytes */
     if (stride != cmp_stride)
@@ -112,7 +117,7 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
 		goto fail_or_end;
 	}
 
-    // printf("Initializing algorithm parameters in compute_ssim.\n");
+	// printf("Initializing algorithm parameters in compute_ssim.\n");
     /* initialize algorithm parameters */
     scale = _max( 1, _round( (float)_min(w,h) / 256.0f ) );
     if (args) {
@@ -155,40 +160,25 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
 		/* Or you can allocate memory dynamically like this.
 		 * Beware, memory allocated like this may not be contiguous. */
 
-		g_custom_square_window = (float**)malloc(window_len*sizeof(float*));
-		if (!g_custom_square_window){
-			printf("error: unable to malloc g_custom_square_window.\n");
-			goto fail_or_end;
-		}
-		for (int i = 0; i < window_len; ++i) g_custom_square_window[i] = (float*)malloc(window_len*sizeof(float));
-		bool flag = 1;
-		for (int i = 0; i < window_len; ++i) flag = flag && (g_custom_square_window[i]);
+	    if (_window_len > 0 && _window_len != window_len) /* Clear window if it exists (checked by _window_len > 0) and is of the wrong size */
+		    _clear_custom_window(&_window_len, &g_custom_square_window, &g_custom_square_window_h, &g_custom_square_window_v);
 
-		if (!flag){
-			for (int i = 0; i < window_len; ++i)
-				if (g_custom_square_window[i]) free(g_custom_square_window[i]);
-			free(g_custom_square_window);
-			g_custom_square_window = 0;
-			printf("error: unable to malloc g_custom_square_window.\n");
-			goto fail_or_end;
-		}
-		for (int i = 0; i < window_len; ++i)
-			for (int j = 0; j < window_len; ++j)
-				g_custom_square_window[i][j] = 1.0f/(window_len*window_len);
+	    /* Creating custom window if it doesn't exist */
+	    if (!g_custom_square_window){
+		    ret = _init_custom_window(window_len, &g_custom_square_window, &g_custom_square_window_h, &g_custom_square_window_v);
+		    if (ret)
+		        goto fail_or_end;
 
-		g_custom_square_window_h = (float*)malloc(window_len*sizeof(float));
-		if (!g_custom_square_window_h){
-			printf("error: unable to malloc g_custom_square_window_h.\n");
-			goto fail_or_end;
-		}
-		for (int i = 0; i < window_len; ++i) g_custom_square_window_h[i] = 1.0f/window_len;
+		    /* Update window size */
+    	    _window_len = window_len;
 
-		g_custom_square_window_v = (float*)malloc(window_len*sizeof(float));
-		if (!g_custom_square_window_v){
-			printf("error: unable to malloc g_custom_square_window_h.\n");
-			goto fail_or_end;
-		}
-		for (int i = 0; i < window_len; ++i) g_custom_square_window_v[i] = g_custom_square_window_h[i]; /* Memory copy is likely faster than recomputing 1.0/window_size */
+			/* Fill windows with values */
+		    for (int i = 0; i < _window_len; ++i)
+			    for (int j = 0; j < _window_len; ++j)
+				    g_custom_square_window[i][j] = 1.0f/(_window_len*_window_len);
+		    
+			for (int i = 0; i < _window_len; ++i) g_custom_square_window_v[i] = g_custom_square_window_h[i] = 1.0f/_window_len;
+        }
 
 	    window.kernel = (float*)g_custom_square_window;
 		window.kernel_h = (float*)g_custom_square_window_h;
@@ -210,7 +200,7 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
 		window.kernel_v = 0;
 		window.stride = window_stride;
     #endif
-		window.w = window.h = window_len;
+		window.w = window.h = _window_len;
 		window.normalized = 1;
 	}
 
@@ -284,9 +274,6 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
 	// printf("%f %f\n", ref_f[0], cmp_f[0]);
     free(ref_f);
     free(cmp_f);
-    free(g_custom_square_window);
-	free(g_custom_square_window_h);
-	free(g_custom_square_window_v);
 	if (!score){
 		fprintf(stderr, "No destination to return result in compute_ssim.\n");
 		fflush(stderr);
@@ -299,6 +286,10 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
     
 	ret = 0;
 fail_or_end:
+#ifdef USE_IQA_CONVOLVE
+	if (ret || clear_windows_on_end)
+		_clear_custom_window(&_window_len, &g_custom_square_window, &g_custom_square_window_h, &g_custom_square_window_v);
+#endif
 	// printf("Exiting compute_ssim.\n");
     return ret;
 }
