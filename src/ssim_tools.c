@@ -106,7 +106,7 @@ float _iqa_ssim(float *ref, float *cmp, int w, int h, const struct _kernel *k,
     float C1,C2,C3;
     int x,y,offset;
     float *ref_mu=0,*cmp_mu=0,*ref_sigma_sqd=0,*cmp_sigma_sqd=0,*sigma_both=0;
-    double ssim_sum, ssim_sqd_sum, ssim_std_sum;
+    double ssim_sum, ssim_sqd_sum, ssim_std_sum, ssim_val;
     // double numerator, denominator; /* zli-nflx */
     double luminance_comp, contrast_comp, structure_comp, sigma_root;
     struct _ssim_int sint;
@@ -214,11 +214,12 @@ float _iqa_ssim(float *ref, float *cmp, int w, int h, const struct _kernel *k,
                 l = (2.0 * ref_mu[offset] * cmp_mu[offset] + C1) / (ref_mu[offset]*ref_mu[offset] + cmp_mu[offset]*cmp_mu[offset] + C1);
                 c = (2.0 * sigma_ref_sigma_cmp + C2) /  (ref_sigma_sqd[offset] + cmp_sigma_sqd[offset] + C2);
                 s = (sigma_both[offset] + C2 / 2.0) / (sigma_ref_sigma_cmp + C2 / 2.0);
-                ssim_sum += l * c * s;
+				ssim_val = l * c * s;
+                ssim_sum += ssim_val;
                 l_sum += l;
                 c_sum += c;
                 s_sum += s;
-				ssim_sqd_sum += ssim_sum * ssim_sum;
+				ssim_sqd_sum += ssim_val * ssim_val;
             }
             else {
                 /* User tweaked alpha, beta, or gamma */
@@ -253,10 +254,10 @@ float _iqa_ssim(float *ref, float *cmp, int w, int h, const struct _kernel *k,
     	*l_mean = (float)(l_sum / (double)(w*h)); /* zli-nflx */
     	*c_mean = (float)(c_sum / (double)(w*h)); /* zli-nflx */
     	*s_mean = (float)(s_sum / (double)(w*h)); /* zli-nflx */
-		ssim_std_sum = sqrt(w*h*ssim_sqd_sum - ssim_sum*ssim_sum);
-		// return (float)(ssim_std_sum/ssim_sum);
+		ssim_std_sum = sqrt(MAX(w*h*ssim_sqd_sum - ssim_sum*ssim_sum, 0.0)); /* Clip values to zero to avoid sqrt of negative values */
+		return (float)(ssim_std_sum/ssim_sum);
 		// return (float)(ssim_std_sum / (double)(w*h));
-        return (float)(ssim_sum / (double)(w*h));
+        // return (float)(ssim_sum / (double)(w*h));
     }
     return mr->reduce(w, h, mr->context);
 }
