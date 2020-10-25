@@ -89,7 +89,7 @@ void _iqa_integral_image_mean(float *img, int w, int h, const struct _kernel *k,
 	else{
 		// printf("Trying to allocate %ld bytes of temporary memory.\n",(size_t)dst_w*dst_h*sizeof(float));
 	    dst = (float*)malloc((size_t)dst_w*dst_h*sizeof(float)); /* If img is to be rewritten, allocate temporary memory for the result */
-		if (dst == NULL){
+		if (!dst){
 		    fprintf(stderr, "error: Could not allocate memory for temporary result image.\n");
 		    fflush(stderr);
 		    return;
@@ -177,10 +177,15 @@ void _iqa_convolve(float *img, int w, int h, const struct _kernel *k, float *res
     double sum;
     float scale, *dst;
     float *img_cache;
-
+    // printf("%d %d\n", k->w, k->h);
+	// printf("%d %d %d %d\n", w, h, dst_w, dst_h);
+	fflush(stdout);
     /* Kernel is applied to all positions where the kernel is fully contained
      * in the image */
-    scale = _calc_scale(k);
+    // scale = _calc_scale(k);
+	/* 1D separable filtering requires a normalized filter */
+	if (!k->normalized)
+		assert(0);
 
     /* create cache */
     img_cache = (float *)calloc(w*h, sizeof(float));
@@ -191,38 +196,67 @@ void _iqa_convolve(float *img, int w, int h, const struct _kernel *k, float *res
     if (!dst)
         dst = img; /* Convolve in-place */
 
-    /* filter horizontally */
-    for (y=-vc; y<dst_h+vc; ++y) {
-        for (x=0; x<dst_w; ++x) {
-            sum = 0.0;
-            k_offset = 0;
-            ky = y+vc;
-            kx = x+uc;
-            img_offset = ky*w + kx;
-            for (u=-uc; u<=uc-kw_even; ++u, ++k_offset) {
-                sum += img[img_offset + u] * k->kernel_h[k_offset];
-            }
-            img_cache[img_offset] = (float)(sum * scale);
-        }
-    }
+	/* filter horizontally */
+	for (y = 0; y < h; ++y){
+	    for (x = 0; x < dst_w; ++x){
+		    for (kx = 0; kx < k->w; ++kx){
+				if (y*w + x + kx >= w*h)
+				    printf("Reading index out of bounds.\n");
+                img_cache[y*dst_w + x] += img[y*w + x + kx] * k->kernel_h[kx];
+		    }
+			if (y*dst_w + x >= dst_w*h)
+				printf("Writing index out of bounds.\n");
+		}
+	}
+
+	for (x = 0; x < dst_w; ++x){
+	    for (y = 0; y < dst_h; ++y){
+		    dst[y*dst_w + x] = 0;
+		    for (ky = 0; ky < k->h; ++ky)
+		        dst[y*dst_w + x] += img_cache[(y + ky)*dst_w + x] * k->kernel_v[ky];
+		}
+	}
+
+    // for (y=-vc; y<dst_h+vc; ++y) {
+    //    for (x=0; x<dst_w; ++x) {
+    //        sum = 0.0;
+    //        k_offset = 0;
+    //        ky = y+vc;
+    //        kx = x+uc;
+    //        img_offset = ky*w + kx;
+    //        for (u=-uc; u<=uc-kw_even; ++u, ++k_offset) {
+				// if (img_offset + u >= w*h)
+				//     printf("img_offset out of bounds\n");
+				// if (k_offset >= k->w)
+				//     printf("k_offset out of bounds\n");
+				// fflush(stdout);
+    //           sum += img[img_offset + u] * k->kernel_h[k_offset];
+    //          }
+    //         img_cache[img_offset] = (float)(sum * scale);
+    //     }
+    // }
 
     /* filter vertically */
-    for (x=0; x<dst_w; ++x) {
-        for (y=0; y<dst_h; ++y) {
-            sum = 0.0;
-            k_offset = 0;
-            ky = y+vc;
-            kx = x+uc;
-            img_offset = ky*w + kx;
-            for (v=-vc; v<=vc-kh_even; ++v, ++k_offset) {
-                sum += img_cache[img_offset + v*w] * k->kernel_v[k_offset];
-            }
-            dst[y*dst_w + x] = (float)(sum * scale);
-        }
-    }
+    // for (x=0; x<dst_w; ++x) {
+    //     for (y=0; y<dst_h; ++y) {
+    //         sum = 0.0;
+    //         k_offset = 0;
+    //         ky = y+vc;
+    //         kx = x+uc;
+    //         img_offset = ky*w + kx;
+    //         for (v=-vc; v<=vc-kh_even; ++v, ++k_offset) {
+    //             sum += img_cache[img_offset + v*w] * k->kernel_v[k_offset];
+    //         }
+    //         dst[y*dst_w + x] = (float)(sum * scale);
+    //     }
+    // }
 
+	// printf("About to free cache %p\n", img_cache);
+	// fflush(stdout);
     /* free cache */
     free(img_cache);
+	//printf("Done\n");
+	//fflush(stdout);
 	img_cache = 0;
 
 #else /* use 2D filter */
@@ -244,21 +278,32 @@ void _iqa_convolve(float *img, int w, int h, const struct _kernel *k, float *res
     /* Kernel is applied to all positions where the kernel is fully contained
      * in the image */
     scale = _calc_scale(k);
-    for (y=0; y < dst_h; ++y) {
-        for (x=0; x < dst_w; ++x) {
-            sum = 0.0;
-            k_offset = 0;
-            ky = y+vc;
-            kx = x+uc;
-            for (v=-vc; v <= vc-kh_even; ++v) {
-                img_offset = (ky+v)*w + kx;
-                for (u=-uc; u <= uc-kw_even; ++u, ++k_offset) {
-                    sum += img[img_offset+u] * k->kernel[k_offset];
-                }
-            }
-            dst[y*dst_w + x] = (float)(sum * scale);
-        }
+	// printf("scale:%f\n", scale);
+	for (y = 0; y < dst_h; ++y){
+		for (x = 0; x < dst_w; ++x){
+		    sum = 0.0;
+		    for (ky = 0; ky < k->h; ++ky)
+				for (kx = 0; kx < k->w; ++kx)
+				    sum += img[(y + ky)*w + (x + kx)] * k->kernel[ky*k->w + kx];
+			img[y*dst_w + x] = (float)(sum * scale);
+		}
     }
+
+//    for (y=0; y < dst_h; ++y) {
+//        for (x=0; x < dst_w; ++x) {
+//            sum = 0.0;
+//            k_offset = 0;
+//            ky = y+vc;
+//            kx = x+uc;
+//            for (v=-vc; v <= vc-kh_even; ++v) {
+//                img_offset = (ky+v)*w + kx;
+//                for (u=-uc; u <= uc-kw_even; ++u, ++k_offset) {
+//                    sum += img[img_offset+u] * k->kernel[k_offset];
+//                }
+//            }
+//            dst[y*dst_w + x] = (float)(sum * scale);
+//        }
+//    }
 
 #endif
 
