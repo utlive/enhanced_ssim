@@ -75,7 +75,7 @@ void _iqa_integral_image_mean(float *img, int w, int h, const struct _kernel *k,
     int dst_w = (w - window_len + 1)/window_stride;
     int dst_h = (h - window_len + 1)/window_stride;
 
-    float *integral_img = (float*)malloc((w+1)*(h+1)*sizeof(float));
+    long double *integral_img = (long double*)malloc((w+1)*(h+1)*sizeof(long double));
 	// printf("Original address of integral_img: %p.\n", integral_img);
 	if (!integral_img){
 		fprintf(stderr, "error: Could not allocate memory for integral image.\n");
@@ -97,17 +97,40 @@ void _iqa_integral_image_mean(float *img, int w, int h, const struct _kernel *k,
 	}
 
 	/* Initialize borders of integral image */
-	for (int i = 0; i <= h; ++i) integral_img[i*(w+1)] = 0;
-	for (int j = 0; j <= w; ++j) integral_img[j] = 0;
+	for (int i = 0; i <= h; ++i) integral_img[i*(w+1)] = 0.0;
+	for (int j = 0; j <= w; ++j) integral_img[j] = 0.0;
 
-    /* Compute cumulative sums along each axis to obtain integral image */
+	    
+	/* Compute cumulative sums along each axis to obtain integral image */
     for (int i = 1; i <= h; ++i) 
 		for (int j = 1;j <= w; ++j)
-		    integral_img[i*(w+1) + j] = integral_img[i*(w+1) + j-1] + img[(i-1)*w + j-1];
+		    integral_img[i*(w+1) + j] = (long double)img[(i-1)*w + (j-1)] + integral_img[(i-1)*(w+1) + j] + integral_img[i*(w+1) + (j-1)] - integral_img[(i-1)*(w+1) + (j-1)];
    
-    for (int i = 1; i <= h; ++i) 
-		for (int j = 1;j <= w; ++j)
-		    integral_img[i*(w+1) + j] = integral_img[(i-1)*(w+1) + j] + integral_img[i*(w+1) + j];
+    // for (int i = 0; i < 6; ++i){
+	//     for (int j = 0; j < 6; ++j)
+	// 	    printf("%f ", integral_img[i*(w+1) + j]);
+	// 	printf("\n");
+	// }
+
+    // for (int i = 1; i <= h; ++i) 
+	// 	for (int j = 1;j <= w; ++j)
+	// 	    integral_img[i*(w+1) + j] = integral_img[(i-1)*(w+1) + j] + integral_img[i*(w+1) + j];
+
+    // for (int i = 0; i < h; ++i)
+	// 	for (int j = 0; j < w; ++j){
+	// 	    long double sum = 0.0;
+	// 	    for (int i1 = 0; i1 < i; ++i1){
+	// 		    for (int j1 = 0; j1 < j; ++j1)
+	// 			    sum += img[i1*w + j1];
+	// 		}
+	// 		if (sum != integral_img[i*(w+1) + j]){
+	// 			printf("Integral image deviates at: %d,%d, comparing values: %Lf %Lf\n", i, j, sum, integral_img[i*(w+1) + j]);
+	// 			printf("Update terms are: %Lf %Lf %Lf %Lf. Expecting: %Lf,%Lf \n", img[(i-1)*w + (j-1)], integral_img[(i-1)*(w+1) + j], integral_img[i*(w+1) + (j-1)], integral_img[(i-1)*(w+1) + (j-1)], img[(i-1)*w + (j-1)] + integral_img[(i-1)*(w+1) + j] + integral_img[i*(w+1) + (j-1)] - integral_img[(i-1)*(w+1) + (j-1)], 162.500000 + 2088752.250000 + 2125149.500000 - 2081932.750000 );
+	// 			int blah;
+	// 			// scanf("%d", &blah);
+	// 	    }
+	// 	}
+	fflush(stdout);
 
 	/* Calculate local means using the integral image */
     int i_strided, j_strided;
@@ -115,7 +138,30 @@ void _iqa_integral_image_mean(float *img, int w, int h, const struct _kernel *k,
         for (int j = 0; j < dst_w; ++j){
 		    i_strided = i*window_stride;
 			j_strided = j*window_stride;
-			dst[i*dst_w + j] = (integral_img[i_strided*(w+1) + j_strided] - integral_img[i_strided*(w+1) + j_strided + window_len] - integral_img[(i_strided + window_len)*(w+1) + j_strided] + integral_img[(i_strided + window_len)*(w+1) + j_strided + window_len])/(window_len*window_len);
+			float temp = (integral_img[i_strided*(w+1) + j_strided] - integral_img[i_strided*(w+1) + j_strided + window_len] - integral_img[(i_strided + window_len)*(w+1) + j_strided] + integral_img[(i_strided + window_len)*(w+1) + j_strided + window_len])/(window_len*window_len);
+			float temp2 = 0;
+			for (int i1 = 0; i1 < window_len; ++i1)
+				for (int i2 = 0; i2 < window_len; ++i2)
+				    temp2 += img[(i+i1)*w + (j+i2)];
+			temp2 /= (float)(window_len * window_len);
+		    if (temp != temp2){
+			    // printf("Different values at %d %d, %f %f\n", i, j, temp, temp2);
+				// for (int i1 = 0; i1 < 5; ++i1){
+				// 	for (int j1 = 0; j1 < 5; ++j1)
+				// 		printf("%f ", img[(i+i1)*(w) + (j+j1)]);
+				// 	printf("\n");
+				// }
+
+				// for (int i1 = 0; i1 < 6; ++i1){
+				//     for (int j1 = 0; j1 < 6; ++j1)
+				// 		printf("%f ", integral_img[(i+i1)*(w+1) + (j+j1)]);
+				//     printf("\n");
+	            // }
+
+				// free(integral_img);
+		        // return;
+			}
+			dst[i*dst_w + j] = temp; 
 		}
     }
 
