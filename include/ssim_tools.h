@@ -39,6 +39,7 @@
 
 #include "iqa.h"
 #include "convolve.h"
+#include "iqa_options.h"
 
 /* Default number of scales for ms_ssim*/
 #define SCALES  5
@@ -96,8 +97,8 @@ static const float g_square_window_v[SQUARE_LEN] = {
 };
 
 /* Helper functions to create and destroy custom windows */
-void _clear_custom_window(int *window_len, float ***window, float **window_h, float **window_v);
-int _init_custom_window(int window_len, float ***window, float **window_h, float **window_v);
+void _clear_custom_window(int *window_len, float **window, float **window_h, float **window_v);
+int _init_custom_window(int window_len, float **window, float **window_h, float **window_v);
 
 /* Holds intermediate SSIM values for map-reduce operation. */
 struct _ssim_int {

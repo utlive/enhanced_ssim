@@ -47,13 +47,9 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 /* Free memory allocated to custom windows for use with _iqa_convolve */
-void _clear_custom_window(int *window_len, float ***window, float **window_h, float **window_v)
+void _clear_custom_window(int *window_len, float **window, float **window_h, float **window_v)
 {
-    if (*window){
-		for (int i = 0; i < *window_len; ++i)
-		    if ((*window)[i]) free((*window)[i]);
-		free(*window);
-	}
+    if (*window) free(*window);
 	if (*window_h) free(*window_h);
 	if (*window_v) free(*window_v);
 
@@ -67,34 +63,27 @@ void _clear_custom_window(int *window_len, float ***window, float **window_h, fl
 }
 
 /* Initialize custom rectangular windows to use with _iqa_convolve */
-int _init_custom_window(int window_len, float ***window, float **window_h, float **window_v)
+int _init_custom_window(int window_len, float **window, float **window_h, float **window_v)
 {
     *window = 0;
 	*window_h = 0;
 	*window_v = 0;
 
-    *window = (float**)malloc(window_len*sizeof(float*));
-	if (!*window)
-		goto init_window_fail;
-	
-	for (int i = 0; i < window_len; ++i){
-		(*window)[i] = (float*)malloc(window_len*sizeof(float));
-		if (!(*window)[i])
-		    goto init_window_fail;
-	}
-
+    *window = (float*)malloc(window_len*window_len*sizeof(float));
     *window_h = (float*)malloc(window_len*sizeof(float));
     *window_v = (float*)malloc(window_len*sizeof(float));
 
-	if (!(*window_h) || !(*window_v))
+	// printf("Created windows. Checking if any window failed.\n");
+	if (!(*window) || !(*window_h) || !(*window_v))
 		goto init_window_fail;
-
+    // printf("Exiting normally\n");
     return 0;
 
 init_window_fail:
     _clear_custom_window(&window_len, window, window_h, window_v);
     printf("error: failed to malloc custom window.\n");
 	fflush(stdout);
+	// printf("Exiting with error\n");
 	return 1;
 }
 
@@ -197,23 +186,20 @@ float _iqa_ssim(float *ref, float *cmp, int w, int h, const struct _kernel *k,
     }
 
 	// printf("Initialized parameters in _iqa_ssim.\n");
-
-#ifdef USE_IQA_CONVOLVE
-    /* Calculate mean */
-    _iqa_convolve(ref, w, h, k, ref_mu, 0, 0);
-    _iqa_convolve(cmp, w, h, k, cmp_mu, 0, 0);
-#elif defined(USE_IQA_INTEGRAL_IMAGE_MEAN)
-	/* Calculate means using integral images. Assumes that a square window was used. */
-	// printf("Calling integral image to compute means.\n");
-	fflush(stdout);
-    _iqa_integral_image_mean(ref, w, h, k, ref_mu, 0, 0);
-	// printf("Next means.\n");
-	fflush(stdout);
-    _iqa_integral_image_mean(cmp, w, h, k, cmp_mu, 0, 0);
-	// printf("Mean computation done.\n");
-	fflush(stdout);
-#endif
-    // printf("Calculated means.\n");
+    // printf("Kernel parameters are %p, %p, %p, %d, %d.\n", k->kernel, k->kernel_h, k->kernel_v, k->w, k->h);
+    /* Calculate means. If k has an explicit kernel, convolve, else use integral image. */
+	if (k->kernel){
+		// printf("Calling convolve with %p, %d, %d, %p, %p\n", ref, w, h, k, ref_mu);
+        _iqa_convolve(ref, w, h, k, ref_mu, 0, 0);
+        _iqa_convolve(cmp, w, h, k, cmp_mu, 0, 0);
+    }
+	else{
+		// printf("Calling integral image\n");
+        _iqa_integral_image_mean(ref, w, h, k, ref_mu, 0, 0);
+        _iqa_integral_image_mean(cmp, w, h, k, cmp_mu, 0, 0);
+	}
+    
+	// printf("Calculated means.\n");
     for (y=0; y<h; ++y) {
         offset = y*w;
         for (x=0; x<w; ++x, ++offset) {
@@ -224,16 +210,17 @@ float _iqa_ssim(float *ref, float *cmp, int w, int h, const struct _kernel *k,
     }
     // printf("Set up sigma calculation.\n");
     /* Calculate sigma */
-#ifdef USE_IQA_CONVOLVE
-    _iqa_convolve(ref_sigma_sqd, w, h, k, 0, 0, 0);
-    _iqa_convolve(cmp_sigma_sqd, w, h, k, 0, 0, 0);
-    _iqa_convolve(sigma_both,    w, h, k, 0, &w, &h); /* Update the width and height */
-#elif defined(USE_IQA_INTEGRAL_IMAGE_MEAN)
-    _iqa_integral_image_mean(ref_sigma_sqd, w, h, k, 0, 0, 0);
-    _iqa_integral_image_mean(cmp_sigma_sqd, w, h, k, 0, 0, 0);
-    _iqa_integral_image_mean(sigma_both, w, h, k, 0, &w, &h); /* Update the width and height */
-#endif
-   // printf("Calculated sigma.\n"); 
+    if (k->kernel){
+	    _iqa_convolve(ref_sigma_sqd, w, h, k, 0, 0, 0);
+        _iqa_convolve(cmp_sigma_sqd, w, h, k, 0, 0, 0);
+        _iqa_convolve(sigma_both,    w, h, k, 0, &w, &h); /* Update the width and height */
+    }
+	else{
+        _iqa_integral_image_mean(ref_sigma_sqd, w, h, k, 0, 0, 0);
+        _iqa_integral_image_mean(cmp_sigma_sqd, w, h, k, 0, 0, 0);
+        _iqa_integral_image_mean(sigma_both, w, h, k, 0, &w, &h); /* Update the width and height */
+    }
+    // printf("Calculated sigma.\n"); 
 	/* The convolution results are smaller by the kernel width and height, and divided by the stride */
     for (y=0; y<h; ++y) {
         offset = y*w;

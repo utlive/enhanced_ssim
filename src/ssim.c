@@ -29,6 +29,7 @@
 #include "math_utils.h"
 #include "decimate.h"
 #include "ssim_tools.h"
+#include "iqa_options.h"
 
 /* _ssim_map */
 int _ssim_map(const struct _ssim_int *si, void *ctx)
@@ -84,7 +85,7 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
 #ifdef USE_IQA_CONVOLVE
 	/* Static variables to describe the current custom window */
 	static int _window_len = 0;
-    static float **g_custom_square_window = 0, *g_custom_square_window_h = 0, *g_custom_square_window_v = 0;
+    static float *g_custom_square_window = 0, *g_custom_square_window_h = 0, *g_custom_square_window_v = 0;
 #endif
 
 	/* check stride */
@@ -99,7 +100,7 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
 
     /* window_type is FFMPEG_SQUARE for 8x8 square window, GAUSSIAN for 11x11 circular-symmetric Gaussian window, CUSTOM_SQUARE for rectangular window of custom size (default) */
     
-	if (window_type < 1 || window_type > 2){ /* Only values of 0, 1 and 2 are defined */
+	if (window_type < 0 || window_type > 2){ /* Only values of 0, 1 and 2 are defined */
 		printf("error: for ssim, window_type must be 0, 1 or 2, found %d", window_type);
 		fflush(stdout);
 		goto fail_or_end;
@@ -165,6 +166,7 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
 
 	    /* Creating custom window if it doesn't exist */
 	    if (!g_custom_square_window){
+			// printf("Creating a window..\n");
 		    ret = _init_custom_window(window_len, &g_custom_square_window, &g_custom_square_window_h, &g_custom_square_window_v);
 		    if (ret)
 		        goto fail_or_end;
@@ -175,7 +177,7 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
 			/* Fill windows with values */
 		    for (int i = 0; i < _window_len; ++i)
 			    for (int j = 0; j < _window_len; ++j)
-				    g_custom_square_window[i][j] = 1.0f/(_window_len*_window_len);
+				    g_custom_square_window[i*window_len + j] = 1.0f/(_window_len*_window_len);
 		    
 			for (int i = 0; i < _window_len; ++i) g_custom_square_window_v[i] = g_custom_square_window_h[i] = 1.0f/_window_len;
         }
@@ -200,7 +202,7 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
 		window.kernel_v = 0;
 		window.stride = window_stride;
     #endif
-		window.w = window.h = _window_len;
+		window.w = window.h = window_len;
 		window.normalized = 1;
 	}
 
@@ -258,7 +260,7 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
             free(low_pass.kernel);
             free(low_pass.kernel_h); /* zli-nflx */
             free(low_pass.kernel_v); /* zli-nflx */
-            printf("error: decimation fails on ref_f or cmp_f.\n");
+            // printf("error: decimation fails on ref_f or cmp_f.\n");
             fflush(stdout);
             goto fail_or_end;
         }
@@ -287,8 +289,11 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
 	ret = 0;
 fail_or_end:
 #ifdef USE_IQA_CONVOLVE
-	if (ret || clear_windows_on_end)
+	if (ret || clear_windows_on_end){
+		// printf("All the way here.\n");
 		_clear_custom_window(&_window_len, &g_custom_square_window, &g_custom_square_window_h, &g_custom_square_window_v);
+		// printf("Done clearing.\n");
+    }
 #endif
 	// printf("Exiting compute_ssim.\n");
     return ret;
