@@ -23,5 +23,7 @@
 
 /* Whether to use 1D separable convolution */
 #define IQA_CONVOLVE_1D
+#define USE_IQA_INTEGRAL_IMAGE_MEAN
+// #define USE_IQA_CONVOLVE
 
 #endif /* IQA_OPTIONS_H_ */
