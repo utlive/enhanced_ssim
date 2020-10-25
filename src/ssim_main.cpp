@@ -345,7 +345,7 @@ int main(int argc, char *argv[])
         }
     }
 	else{
-		window_len = 11;
+		window_len = (window_type == FFMPEG_SQUARE)? 8: 11;
     }
 
     if (window_len <= 0 || window_len > std::max(width, height))
@@ -354,7 +354,16 @@ int main(int argc, char *argv[])
         print_usage(argc, argv);
         return -1;
     }
-    
+	
+	if (window_type == FFMPEG_SQUARE && window_len != 8){
+		fprintf(stderr, "Warning: FFMPEG window must be of size 8. Ignoring input.");	
+		window_len = 8;
+	}
+	else if (window_type == GAUSSIAN && window_len != 11){
+		fprintf(stderr, "Warning: Gaussian window must be of size 11. Ignoring input.");	
+		window_len = 11;
+	}
+
 	temp = getCmdOption(argv + 7, argv + argc, "--window-stride");
     if (temp)
     {
@@ -380,6 +389,11 @@ int main(int argc, char *argv[])
         return -1;
     }
 
+	if (window_type != CUSTOM_SQUARE && window_len != 8){
+		fprintf(stderr, "Warning: Only custom window can have a stride greater than 1. Ignoring input.");	
+		window_stride = 8;
+	}
+
 	/* Add scale method after checking with Chengyang */
 
     try
@@ -392,7 +406,7 @@ int main(int argc, char *argv[])
 			getMemory(itr_ctr,2);
 		}
 #else
-        // printf("Calling wrapper.\n");
+        // printf("Calling wrapper with %s %d %d %d %d %d.\n", fmt, width, height, window_type, window_len, window_stride);
 		return run_wrapper(fmt, width, height, ref_path, dis_path, window_type, window_len, window_stride);
 #endif
     }
