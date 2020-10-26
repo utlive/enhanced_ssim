@@ -50,12 +50,12 @@ static bool cmdOptionExists(char** begin, char** end, const std::string& option)
 
 static void print_usage(int argc, char *argv[])
 {
-    fprintf(stderr, "Usage: %s fmt width height ref_path dis_path [--window-type window_type] [--window-len window_len] [--window-stride window_stride] [--scale-method scale_method]\n", argv[0]);
+    fprintf(stderr, "Usage: %s fmt width height ref_path dis_path [--window-type window_type] [--window-len window_len] [--window-stride window_stride] [--distance-to-height-ratio d2h]\n", argv[0]);
     fprintf(stderr, "fmt:\n\tyuv420p\n\tyuv422p\n\tyuv444p\n\tyuv420p10le\n\tyuv422p10le\n\tyuv444p10le\n\tyuv420p12le\n\tyuv422p12le\n\tyuv444p12le\n\tyuv420p16le\n\tyuv422p16le\n\tyuv444p16le\n\n");
     fprintf(stderr, "window_type: ffmpeg_square\n\tgaussian\n\tcustom_square (default)\n\n");
 	fprintf(stderr, "window_len: 1 <= window_len <= min(width, height) (default: 11)\n\n");
 	fprintf(stderr, "window_stride: window_stride >= 1 (default)\n\n");
-	fprintf(stderr, "scale_method: constant, mobile, desktop (default)\n\n");
+	fprintf(stderr, "d2h: d2h > 0 (default: 6.0)\n\n");
 }
 
 #if MEM_LEAK_TEST_ENABLE
@@ -106,7 +106,7 @@ static void getMemory(int itr_ctr, int state)
 }
 #endif
 
-static int run_wrapper(char *fmt, int width, int height, char *ref_path, char *dis_path, int window_type, int window_len, int window_stride)
+static int run_wrapper(char *fmt, int width, int height, char *ref_path, char *dis_path, int window_type, int window_len, int window_stride, float d2h)
 {
     int ret = 0;
     struct data *s;
@@ -220,7 +220,7 @@ static int run_wrapper(char *fmt, int width, int height, char *ref_path, char *d
 			goto fail_or_end;
 		}
 		// printf("Calling compute_ssim for frame %d/%d.\n", frame+1, s->num_frames);
-		ret = compute_ssim(ref_buf, dis_buf, s->width, s->height, data_stride, data_stride, window_type, window_len, window_stride, fr_scores + frame, 0, 0, 0, (frame == s->num_frames-1)); /* Clear windows after the last frame */
+		ret = compute_ssim(ref_buf, dis_buf, s->width, s->height, data_stride, data_stride, window_type, window_len, window_stride, d2h, fr_scores + frame, 0, 0, 0, (frame == s->num_frames-1)); /* Clear windows after the last frame */
 		if (ret){
 		    fprintf(stderr, "compute ssim failed.\n");
 			goto fail_or_end;
@@ -275,6 +275,7 @@ int main(int argc, char *argv[])
 	int window_type;
 	int window_len;
 	int window_stride;
+	float d2h;
 #if MEM_LEAK_TEST_ENABLE	
 	int itr_ctr;
 	int ret = 0;
@@ -330,7 +331,7 @@ int main(int argc, char *argv[])
 		window_type = CUSTOM_SQUARE;
     }
 
-    temp = getCmdOption(argv + 7, argv + argc, "--window-len");
+    temp = getCmdOption(argv + 6, argv + argc, "--window-len");
     if (temp)
     {
         try
@@ -364,7 +365,7 @@ int main(int argc, char *argv[])
 		window_len = 11;
 	}
 
-	temp = getCmdOption(argv + 7, argv + argc, "--window-stride");
+	temp = getCmdOption(argv + 6, argv + argc, "--window-stride");
     if (temp)
     {
         try
@@ -394,7 +395,30 @@ int main(int argc, char *argv[])
 		window_stride = 8;
 	}
 
-	/* Add scale method after checking with Chengyang */
+	temp = getCmdOption(argv + 6, argv + argc, "--distance-to-height-ratio");
+    if (temp)
+    {
+        try
+        {
+            d2h = std::stof(temp);
+        }
+        catch (std::logic_error& e)
+        {
+            fprintf(stderr, "Error: Invalid distance to height ratio format: %s\n", e.what());
+            print_usage(argc, argv);
+            return -1;
+        }
+    }
+	else{
+		d2h = 6.0;
+    }
+
+    if (d2h <= 0)
+    {
+        fprintf(stderr, "Error: Invalid distance to height ratio value: %d\n", window_stride);
+        print_usage(argc, argv);
+        return -1;
+    }
 
     try
     {
@@ -402,12 +426,12 @@ int main(int argc, char *argv[])
 		for(itr_ctr=0;itr_ctr<1000;itr_ctr++)
 		{
 			getMemory(itr_ctr,1);
-			ret = run_wrapper(fmt, width, height, ref_path, dis_path, window_type, window_len, window_stride);
+			ret = run_wrapper(fmt, width, height, ref_path, dis_path, window_type, window_len, window_stride, d2h);
 			getMemory(itr_ctr,2);
 		}
 #else
         // printf("Calling wrapper with %s %d %d %d %d %d.\n", fmt, width, height, window_type, window_len, window_stride);
-		return run_wrapper(fmt, width, height, ref_path, dis_path, window_type, window_len, window_stride);
+		return run_wrapper(fmt, width, height, ref_path, dis_path, window_type, window_len, window_stride, d2h);
 #endif
     }
     catch (const std::exception &e)

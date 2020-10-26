@@ -65,7 +65,7 @@ float _ssim_cov_reduce(int w, int h, void *ctx)
 }
 
 int compute_ssim(const float *ref, const float *cmp, int w, int h,
-        int ref_stride, int cmp_stride, int window_type, int window_len, int window_stride, double *score, /* Abhinau added argument here. */
+        int ref_stride, int cmp_stride, int window_type, int window_len, int window_stride, float d2h, double *score, /* Abhinau added argument here. */
         double *l_score, double *c_score, double *s_score, int clear_windows_on_end)
 {
 
@@ -120,7 +120,6 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
 
 	// printf("Initializing algorithm parameters in compute_ssim.\n");
     /* initialize algorithm parameters */
-    scale = _round(6.0f/1.618f);
     if (args) {
         if (args->d2h) {
             scale = _round((float)args->d2h/1.618f);
@@ -128,11 +127,12 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
         if (args->f) {
             scale = args->f;
         }
-        mr.map     = _ssim_map;
-        mr.reduce  = _ssim_reduce;
+        mr.map     = _ssim_cov_map;
+        mr.reduce  = _ssim_cov_reduce;
         mr.context = (void*)&ssim_sum;
     }
-
+	else
+		scale = _round(d2h/1.618f);
 	// printf("window_type = %d. Creating windows.\n", window_type);
     if (window_type == FFMPEG_SQUARE){
 		window.kernel = (float*)g_square_window;
