@@ -196,7 +196,7 @@ static int run_wrapper(char *fmt, int width, int height, char *ref_path, char *d
 
 	if (s->num_frames <= 0)
 		goto fail_or_end;
-    // printf("Opened files. Has %d frames.\n", s->num_frames);
+
 	data_stride = width * sizeof(float);
 	data_sz = (size_t)data_stride * height;
 
@@ -205,21 +205,17 @@ static int run_wrapper(char *fmt, int width, int height, char *ref_path, char *d
 	temp_buf = (float*)aligned_malloc(2*data_sz, MAX_ALIGN); // Used to store u and v components by read_frame
 	fr_scores = (double*)aligned_malloc(s->num_frames*sizeof(double), MAX_ALIGN);
 
-	// printf("Allocated memory.\n");
-
 	if (!ref_buf || !dis_buf || !temp_buf || !fr_scores){
 		fprintf(stderr, "aligned malloc failed to allocate memory for ref, dis and temp.\n");
 		goto fail_or_end;
     }
 
 	for (int frame = 0; frame < s->num_frames; ++frame){
-		// printf("Calling read_frame for frame %d/%d.\n", frame+1, s->num_frames);
 	    ret = read_frame(ref_buf, dis_buf, temp_buf, data_stride, s);
 		if (ret){
 		    fprintf(stderr, "Error reading frame from file,\n");
 			goto fail_or_end;
 		}
-		// printf("Calling compute_ssim for frame %d/%d.\n", frame+1, s->num_frames);
 		ret = compute_ssim(ref_buf, dis_buf, s->width, s->height, data_stride, data_stride, window_type, window_len, window_stride, d2h, fr_scores + frame, 0, 0, 0, (frame == s->num_frames-1)); /* Clear windows after the last frame */
 		if (ret){
 		    fprintf(stderr, "compute ssim failed.\n");
@@ -430,7 +426,6 @@ int main(int argc, char *argv[])
 			getMemory(itr_ctr,2);
 		}
 #else
-        // printf("Calling wrapper with %s %d %d %d %d %d.\n", fmt, width, height, window_type, window_len, window_stride);
 		return run_wrapper(fmt, width, height, ref_path, dis_path, window_type, window_len, window_stride, d2h);
 #endif
     }

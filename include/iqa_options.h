@@ -23,6 +23,8 @@
 
 /* Whether to use 1D separable convolution */
 #define IQA_CONVOLVE_1D
+
+/* Whether to use integral images for custom square windows */
 #define USE_IQA_INTEGRAL_IMAGE_MEAN
 // #define USE_IQA_CONVOLVE
 

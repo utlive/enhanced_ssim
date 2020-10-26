@@ -78,7 +78,9 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
     struct _kernel window;
     float result = INFINITY;
     float l, c, s;
-    double ssim_sum=0.0;
+    struct _ssim_ctx ssim_ctx;
+    ssim_ctx.ssim_sum = 0.0;
+    ssim_ctx.ssim_sqd_sum = 0.0;
     struct _map_reduce mr;
     const struct iqa_ssim_args *args = 0; /* 0 for default */
 
@@ -118,7 +120,6 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
 		goto fail_or_end;
 	}
 
-	// printf("Initializing algorithm parameters in compute_ssim.\n");
     /* initialize algorithm parameters */
     if (args) {
         if (args->d2h) {
@@ -129,11 +130,11 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
         }
         mr.map     = _ssim_cov_map;
         mr.reduce  = _ssim_cov_reduce;
-        mr.context = (void*)&ssim_sum;
+        mr.context = (void*)&ssim_ctx;
     }
 	else
 		scale = _round(d2h/1.618f);
-	// printf("window_type = %d. Creating windows.\n", window_type);
+
     if (window_type == FFMPEG_SQUARE){
 		window.kernel = (float*)g_square_window;
 		window.kernel_h = (float*)g_square_window_h;
@@ -169,7 +170,6 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
 
 	    /* Creating custom window if it doesn't exist */
 	    if (!g_custom_square_window){
-			// printf("Creating a window..\n");
 		    ret = _init_custom_window(window_len, &g_custom_square_window, &g_custom_square_window_h, &g_custom_square_window_v);
 		    if (ret)
 		        goto fail_or_end;
@@ -198,7 +198,6 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
 		window.stride = window_stride;
 		window.bnd_opt = KBND_SYMMETRIC;
     #elif defined(USE_IQA_INTEGRAL_IMAGE_MEAN)
-		// printf("Defining windows to use integral image.\n");
 		/* When using integral images, windows do not need to be created explicitly */
 		window.kernel = 0;
 		window.kernel_h = 0;
@@ -209,7 +208,6 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
 		window.normalized = 1;
 	}
 
-    // printf("Finished creating windows.\n");
     /* convert image values to floats, forcing stride = width. */
     ref_f = (float*)malloc(w*h*sizeof(float));
     cmp_f = (float*)malloc(w*h*sizeof(float));
@@ -263,7 +261,7 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
             free(low_pass.kernel);
             free(low_pass.kernel_h); /* zli-nflx */
             free(low_pass.kernel_v); /* zli-nflx */
-            // printf("error: decimation fails on ref_f or cmp_f.\n");
+            printf("error: decimation fails on ref_f or cmp_f.\n");
             fflush(stdout);
             goto fail_or_end;
         }
@@ -271,12 +269,9 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
         free(low_pass.kernel_h); /* zli-nflx */
         free(low_pass.kernel_v); /* zli-nflx */
     }
-	// printf("Calling _iqa_ssim.\n");
-    result = _iqa_ssim(ref_f, cmp_f, w, h, &window, &mr, args, &l, &c, &s);
-    // printf("Finished _iqa_ssim.\n");
 
-	// printf("Freeing float versions of ref and cmp.\n");
-	// printf("%f %f\n", ref_f[0], cmp_f[0]);
+    result = _iqa_ssim(ref_f, cmp_f, w, h, &window, &mr, args, &l, &c, &s);
+
     free(ref_f);
     free(cmp_f);
 	if (!score){
@@ -292,13 +287,9 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
 	ret = 0;
 fail_or_end:
 #ifdef USE_IQA_CONVOLVE
-	if (ret || clear_windows_on_end){
-		// printf("All the way here.\n");
+	if (ret || clear_windows_on_end)
 		_clear_custom_window(&_window_len, &g_custom_square_window, &g_custom_square_window_h, &g_custom_square_window_v);
-		// printf("Done clearing.\n");
-    }
 #endif
-	// printf("Exiting compute_ssim.\n");
     return ret;
 }
 

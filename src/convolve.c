@@ -76,18 +76,16 @@ void _iqa_integral_image_mean(float *img, int w, int h, const struct _kernel *k,
     int dst_h = (h - window_len + 1)/window_stride;
 
     long double *integral_img = (long double*)malloc((w+1)*(h+1)*sizeof(long double));
-	// printf("Original address of integral_img: %p.\n", integral_img);
 	if (!integral_img){
 		fprintf(stderr, "error: Could not allocate memory for integral image.\n");
 		fflush(stderr);
 		return;
 	}
+
 	float *dst = 0;
-	if (result){
+	if (result)
 		dst = result;
-    }
 	else{
-		// printf("Trying to allocate %ld bytes of temporary memory.\n",(size_t)dst_w*dst_h*sizeof(float));
 	    dst = (float*)malloc((size_t)dst_w*dst_h*sizeof(float)); /* If img is to be rewritten, allocate temporary memory for the result */
 		if (!dst){
 		    fprintf(stderr, "error: Could not allocate memory for temporary result image.\n");
@@ -99,38 +97,11 @@ void _iqa_integral_image_mean(float *img, int w, int h, const struct _kernel *k,
 	/* Initialize borders of integral image */
 	for (int i = 0; i <= h; ++i) integral_img[i*(w+1)] = 0.0;
 	for (int j = 0; j <= w; ++j) integral_img[j] = 0.0;
-
 	    
 	/* Compute cumulative sums along each axis to obtain integral image */
     for (int i = 1; i <= h; ++i) 
 		for (int j = 1;j <= w; ++j)
 		    integral_img[i*(w+1) + j] = (long double)img[(i-1)*w + (j-1)] + integral_img[(i-1)*(w+1) + j] + integral_img[i*(w+1) + (j-1)] - integral_img[(i-1)*(w+1) + (j-1)];
-   
-    // for (int i = 0; i < 6; ++i){
-	//     for (int j = 0; j < 6; ++j)
-	// 	    printf("%f ", integral_img[i*(w+1) + j]);
-	// 	printf("\n");
-	// }
-
-    // for (int i = 1; i <= h; ++i) 
-	// 	for (int j = 1;j <= w; ++j)
-	// 	    integral_img[i*(w+1) + j] = integral_img[(i-1)*(w+1) + j] + integral_img[i*(w+1) + j];
-
-    // for (int i = 0; i < h; ++i)
-	// 	for (int j = 0; j < w; ++j){
-	// 	    long double sum = 0.0;
-	// 	    for (int i1 = 0; i1 < i; ++i1){
-	// 		    for (int j1 = 0; j1 < j; ++j1)
-	// 			    sum += img[i1*w + j1];
-	// 		}
-	// 		if (sum != integral_img[i*(w+1) + j]){
-	// 			printf("Integral image deviates at: %d,%d, comparing values: %Lf %Lf\n", i, j, sum, integral_img[i*(w+1) + j]);
-	// 			printf("Update terms are: %Lf %Lf %Lf %Lf. Expecting: %Lf,%Lf \n", img[(i-1)*w + (j-1)], integral_img[(i-1)*(w+1) + j], integral_img[i*(w+1) + (j-1)], integral_img[(i-1)*(w+1) + (j-1)], img[(i-1)*w + (j-1)] + integral_img[(i-1)*(w+1) + j] + integral_img[i*(w+1) + (j-1)] - integral_img[(i-1)*(w+1) + (j-1)], 162.500000 + 2088752.250000 + 2125149.500000 - 2081932.750000 );
-	// 			int blah;
-	// 			// scanf("%d", &blah);
-	// 	    }
-	// 	}
-	fflush(stdout);
 
 	/* Calculate local means using the integral image */
     int i_strided, j_strided;
@@ -138,53 +109,30 @@ void _iqa_integral_image_mean(float *img, int w, int h, const struct _kernel *k,
         for (int j = 0; j < dst_w; ++j){
 		    i_strided = i*window_stride;
 			j_strided = j*window_stride;
-			float temp = (integral_img[i_strided*(w+1) + j_strided] - integral_img[i_strided*(w+1) + j_strided + window_len] - integral_img[(i_strided + window_len)*(w+1) + j_strided] + integral_img[(i_strided + window_len)*(w+1) + j_strided + window_len])/(window_len*window_len);
-			float temp2 = 0;
-			for (int i1 = 0; i1 < window_len; ++i1)
-				for (int i2 = 0; i2 < window_len; ++i2)
-				    temp2 += img[(i+i1)*w + (j+i2)];
-			temp2 /= (float)(window_len * window_len);
-		    if (temp != temp2){
-			    // printf("Different values at %d %d, %f %f\n", i, j, temp, temp2);
-				// for (int i1 = 0; i1 < 5; ++i1){
-				// 	for (int j1 = 0; j1 < 5; ++j1)
-				// 		printf("%f ", img[(i+i1)*(w) + (j+j1)]);
-				// 	printf("\n");
-				// }
-
-				// for (int i1 = 0; i1 < 6; ++i1){
-				//     for (int j1 = 0; j1 < 6; ++j1)
-				// 		printf("%f ", integral_img[(i+i1)*(w+1) + (j+j1)]);
-				//     printf("\n");
-	            // }
-
-				// free(integral_img);
-		        // return;
-			}
-			dst[i*dst_w + j] = temp; 
+			dst[i*dst_w + j] = (integral_img[i_strided*(w+1) + j_strided] - 
+                                integral_img[i_strided*(w+1) + j_strided + window_len] - 
+                                integral_img[(i_strided + window_len)*(w+1) + j_strided] + 
+                                integral_img[(i_strided + window_len)*(w+1) + j_strided + window_len])/(window_len*window_len);
 		}
     }
 
-	// printf("Time to free integral image at %p having first value %f.\n", integral_img, integral_img[0]);
     /* Free memory used to store the integral image */
     if (integral_img){
         free(integral_img);
 	    integral_img = 0;
     }
-    // printf("Freed integral image. Now the value is %p.\n", integral_img);
-    fflush(stdout);
+
 	/* If rw and rh exist, update their values */
 	if (rw) *rw = dst_w;
 	if (rh) *rh = dst_h;
 
 	if (dst != result){
         for (int i = 0; i < dst_w*dst_h; ++i) img[i] = dst[i]; /* Overwrite img with the result of computing means */
-		// printf("Time to free destination array.\n");
  	    free(dst); /* Free temporary memory */
 		dst = 0;
 	}
-	// printf("Exiting integral_image.\n");
 }
+
 static float _calc_scale(const struct _kernel *k)
 {
     int ii,k_len;
@@ -223,12 +171,7 @@ void _iqa_convolve(float *img, int w, int h, const struct _kernel *k, float *res
     double sum;
     float scale, *dst;
     float *img_cache;
-    // printf("%d %d\n", k->w, k->h);
-	// printf("%d %d %d %d\n", w, h, dst_w, dst_h);
-	fflush(stdout);
-    /* Kernel is applied to all positions where the kernel is fully contained
-     * in the image */
-    // scale = _calc_scale(k);
+
 	/* 1D separable filtering requires a normalized filter */
 	if (!k->normalized)
 		assert(0);
@@ -246,12 +189,8 @@ void _iqa_convolve(float *img, int w, int h, const struct _kernel *k, float *res
 	for (y = 0; y < h; ++y){
 	    for (x = 0; x < dst_w; ++x){
 		    for (kx = 0; kx < k->w; ++kx){
-				if (y*w + x + kx >= w*h)
-				    printf("Reading index out of bounds.\n");
                 img_cache[y*dst_w + x] += img[y*w + x + kx] * k->kernel_h[kx];
 		    }
-			if (y*dst_w + x >= dst_w*h)
-				printf("Writing index out of bounds.\n");
 		}
 	}
 
@@ -263,46 +202,8 @@ void _iqa_convolve(float *img, int w, int h, const struct _kernel *k, float *res
 		}
 	}
 
-    // for (y=-vc; y<dst_h+vc; ++y) {
-    //    for (x=0; x<dst_w; ++x) {
-    //        sum = 0.0;
-    //        k_offset = 0;
-    //        ky = y+vc;
-    //        kx = x+uc;
-    //        img_offset = ky*w + kx;
-    //        for (u=-uc; u<=uc-kw_even; ++u, ++k_offset) {
-				// if (img_offset + u >= w*h)
-				//     printf("img_offset out of bounds\n");
-				// if (k_offset >= k->w)
-				//     printf("k_offset out of bounds\n");
-				// fflush(stdout);
-    //           sum += img[img_offset + u] * k->kernel_h[k_offset];
-    //          }
-    //         img_cache[img_offset] = (float)(sum * scale);
-    //     }
-    // }
-
-    /* filter vertically */
-    // for (x=0; x<dst_w; ++x) {
-    //     for (y=0; y<dst_h; ++y) {
-    //         sum = 0.0;
-    //         k_offset = 0;
-    //         ky = y+vc;
-    //         kx = x+uc;
-    //         img_offset = ky*w + kx;
-    //         for (v=-vc; v<=vc-kh_even; ++v, ++k_offset) {
-    //             sum += img_cache[img_offset + v*w] * k->kernel_v[k_offset];
-    //         }
-    //         dst[y*dst_w + x] = (float)(sum * scale);
-    //     }
-    // }
-
-	// printf("About to free cache %p\n", img_cache);
-	// fflush(stdout);
     /* free cache */
     free(img_cache);
-	//printf("Done\n");
-	//fflush(stdout);
 	img_cache = 0;
 
 #else /* use 2D filter */
@@ -324,7 +225,7 @@ void _iqa_convolve(float *img, int w, int h, const struct _kernel *k, float *res
     /* Kernel is applied to all positions where the kernel is fully contained
      * in the image */
     scale = _calc_scale(k);
-	// printf("scale:%f\n", scale);
+
 	for (y = 0; y < dst_h; ++y){
 		for (x = 0; x < dst_w; ++x){
 		    sum = 0.0;
@@ -334,22 +235,6 @@ void _iqa_convolve(float *img, int w, int h, const struct _kernel *k, float *res
 			img[y*dst_w + x] = (float)(sum * scale);
 		}
     }
-
-//    for (y=0; y < dst_h; ++y) {
-//        for (x=0; x < dst_w; ++x) {
-//            sum = 0.0;
-//            k_offset = 0;
-//            ky = y+vc;
-//            kx = x+uc;
-//            for (v=-vc; v <= vc-kh_even; ++v) {
-//                img_offset = (ky+v)*w + kx;
-//                for (u=-uc; u <= uc-kw_even; ++u, ++k_offset) {
-//                    sum += img[img_offset+u] * k->kernel[k_offset];
-//                }
-//            }
-//            dst[y*dst_w + x] = (float)(sum * scale);
-//        }
-//    }
 
 #endif
 
