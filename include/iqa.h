@@ -46,6 +46,7 @@ struct iqa_ssim_args {
     int L;          /**< dynamic range (2^8 - 1)*/
     float K1;       /**< stabilization constant 1 */
     float K2;       /**< stabilization constant 2 */
+    int d2h;        /**< ratio of viewing distance to screen height. 6 by default */
     int f;          /**< scale factor. 0=default scaling, 1=no scaling */
 };
 

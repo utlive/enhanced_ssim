@@ -120,9 +120,12 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
 
 	// printf("Initializing algorithm parameters in compute_ssim.\n");
     /* initialize algorithm parameters */
-    scale = _max( 1, _round( (float)_min(w,h) / 256.0f ) );
+    scale = _round(6.0f/1.618f);
     if (args) {
-        if(args->f) {
+        if (args->d2h) {
+            scale = _round((float)args->d2h/1.618f);
+        }
+        if (args->f) {
             scale = args->f;
         }
         mr.map     = _ssim_map;
