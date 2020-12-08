@@ -17,5 +17,5 @@
  */
 
 int compute_ssim(const float *ref, const float *cmp, int w, int h,
-        int ref_stride, int cmp_stride, int window_type, int window_len, int window_stride, float d2h, double *score, /* Abhinau added argument here. */
+        int ref_stride, int cmp_stride, int window_type, int window_len, int window_stride, float d2h, int spatial_aggregation_method, double *score,
         double *l_score, double *c_score, double *s_score, int close_windows_on_end);

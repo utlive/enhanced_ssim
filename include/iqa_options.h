@@ -28,4 +28,8 @@
 #define USE_IQA_INTEGRAL_IMAGE_MEAN
 // #define USE_IQA_CONVOLVE
 
+/* Spatial aggregation methods */
+#define COV_POOLING 0
+#define MEAN_POOLING 1
+
 #endif /* IQA_OPTIONS_H_ */

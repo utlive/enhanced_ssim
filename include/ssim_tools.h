@@ -125,7 +125,7 @@ struct _map_reduce {
     void *context;
 };
 
-float _iqa_ssim(float *ref, float *cmp, int w, int h, const struct _kernel *k,
+float _iqa_ssim(float *ref, float *cmp, int w, int h, const struct _kernel *k, int spatial_aggregation_method,
 		const struct _map_reduce *mr, const struct iqa_ssim_args *args
 		, float *l_mean, float *c_mean, float *s_mean);
 

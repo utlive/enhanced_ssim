@@ -65,7 +65,7 @@ float _ssim_cov_reduce(int w, int h, void *ctx)
 }
 
 int compute_ssim(const float *ref, const float *cmp, int w, int h,
-        int ref_stride, int cmp_stride, int window_type, int window_len, int window_stride, float d2h, double *score, /* Abhinau added argument here. */
+        int ref_stride, int cmp_stride, int window_type, int window_len, int window_stride, float d2h, int spatial_aggregation_method, double *score,
         double *l_score, double *c_score, double *s_score, int clear_windows_on_end)
 {
 
@@ -81,6 +81,7 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
     struct _ssim_ctx ssim_ctx;
     ssim_ctx.ssim_sum = 0.0;
     ssim_ctx.ssim_sqd_sum = 0.0;
+	float ssim_sum = 0.0;
     struct _map_reduce mr;
     const struct iqa_ssim_args *args = 0; /* 0 for default */
 
@@ -128,9 +129,16 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
         if (args->f) {
             scale = args->f;
         }
-        mr.map     = _ssim_cov_map;
-        mr.reduce  = _ssim_cov_reduce;
-        mr.context = (void*)&ssim_ctx;
+		if (spatial_aggregation_method == COV_POOLING){
+			mr.map     = _ssim_cov_map;
+			mr.reduce  = _ssim_cov_reduce;
+			mr.context = (void*)&ssim_ctx;
+		}
+		else{
+			mr.map     = _ssim_map;
+			mr.reduce  = _ssim_reduce;
+			mr.context = (void*)&ssim_sum;
+		}
     }
 	else
 		scale = _round(d2h/1.618f);
@@ -157,16 +165,11 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
 		/* Windows only need to be created if using convolution.
 		 * When using integral images, only the size needs to be specified. */
 
-		/* To create the windows, you can allocate static memory like this. */
-
     #ifdef USE_IQA_CONVOLVE
-		// static const float g_custom_square[window_len][window_len], g_custom_square_h[window_len], g_custom_square_v[window_len];
 
-		/* Or you can allocate memory dynamically like this.
-		 * Beware, memory allocated like this may not be contiguous. */
-
-	    if (_window_len > 0 && _window_len != window_len) /* Clear window if it exists (checked by _window_len > 0) and is of the wrong size */
-		    _clear_custom_window(&_window_len, &g_custom_square_window, &g_custom_square_window_h, &g_custom_square_window_v);
+		/* Clear window if it exists (checked by _window_len > 0) and is of the wrong size */
+		if (_window_len > 0 && _window_len != window_len) 
+			_clear_custom_window(&_window_len, &g_custom_square_window, &g_custom_square_window_h, &g_custom_square_window_v);
 
 	    /* Creating custom window if it doesn't exist */
 	    if (!g_custom_square_window){
@@ -270,7 +273,7 @@ int compute_ssim(const float *ref, const float *cmp, int w, int h,
         free(low_pass.kernel_v); /* zli-nflx */
     }
 
-    result = _iqa_ssim(ref_f, cmp_f, w, h, &window, &mr, args, &l, &c, &s);
+    result = _iqa_ssim(ref_f, cmp_f, w, h, &window, spatial_aggregation_method, &mr, args, &l, &c, &s);
 
     free(ref_f);
     free(cmp_f);

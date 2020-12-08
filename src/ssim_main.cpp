@@ -31,6 +31,7 @@ extern "C" {
 #include "mem.h"
 #include "convolve.h"
 #include "ssim.h"
+#include "iqa_options.h"
 }
 
 static char* getCmdOption(char ** begin, char ** end, const std::string & option)
@@ -50,12 +51,13 @@ static bool cmdOptionExists(char** begin, char** end, const std::string& option)
 
 static void print_usage(int argc, char *argv[])
 {
-    fprintf(stderr, "Usage: %s fmt width height ref_path dis_path [--window-type window_type] [--window-len window_len] [--window-stride window_stride] [--distance-to-height-ratio d2h]\n", argv[0]);
+    fprintf(stderr, "Usage: %s fmt width height ref_path dis_path [--window-type window_type] [--window-len window_len] [--window-stride window_stride] [--distance-to-height-ratio d2h] [--spatial-aggregation-method] spatial_aggregation_method\n", argv[0]);
     fprintf(stderr, "fmt:\n\tyuv420p\n\tyuv422p\n\tyuv444p\n\tyuv420p10le\n\tyuv422p10le\n\tyuv444p10le\n\tyuv420p12le\n\tyuv422p12le\n\tyuv444p12le\n\tyuv420p16le\n\tyuv422p16le\n\tyuv444p16le\n\n");
     fprintf(stderr, "window_type: ffmpeg_square\n\tgaussian\n\tcustom_square (default)\n\n");
 	fprintf(stderr, "window_len: 1 <= window_len <= min(width, height) (default: 11)\n\n");
 	fprintf(stderr, "window_stride: window_stride >= 1 (default)\n\n");
 	fprintf(stderr, "d2h: d2h > 0 (default: 6.0)\n\n");
+	fprintf(stderr, "spatial_aggregation_method: mean, cov (default)\n\n");
 }
 
 #if MEM_LEAK_TEST_ENABLE
@@ -106,7 +108,7 @@ static void getMemory(int itr_ctr, int state)
 }
 #endif
 
-static int run_wrapper(char *fmt, int width, int height, char *ref_path, char *dis_path, int window_type, int window_len, int window_stride, float d2h)
+static int run_wrapper(char *fmt, int width, int height, char *ref_path, char *dis_path, int window_type, int window_len, int window_stride, float d2h, int spatial_aggregation_method)
 {
     int ret = 0;
     struct data *s;
@@ -216,7 +218,7 @@ static int run_wrapper(char *fmt, int width, int height, char *ref_path, char *d
 		    fprintf(stderr, "Error reading frame from file,\n");
 			goto fail_or_end;
 		}
-		ret = compute_ssim(ref_buf, dis_buf, s->width, s->height, data_stride, data_stride, window_type, window_len, window_stride, d2h, fr_scores + frame, 0, 0, 0, (frame == s->num_frames-1)); /* Clear windows after the last frame */
+		ret = compute_ssim(ref_buf, dis_buf, s->width, s->height, data_stride, data_stride, window_type, window_len, window_stride, d2h, spatial_aggregation_method, fr_scores + frame, 0, 0, 0, (frame == s->num_frames-1)); /* Clear windows after the last frame */
 		if (ret){
 		    fprintf(stderr, "compute ssim failed.\n");
 			goto fail_or_end;
@@ -272,6 +274,7 @@ int main(int argc, char *argv[])
 	int window_len;
 	int window_stride;
 	float d2h;
+	int spatial_aggregation_method;
 #if MEM_LEAK_TEST_ENABLE	
 	int itr_ctr;
 	int ret = 0;
@@ -416,17 +419,33 @@ int main(int argc, char *argv[])
         return -1;
     }
 
+    temp = getCmdOption(argv + 6, argv + argc, "--spatial-aggregation-method");
+    if (temp)
+    {
+		if (!strcmp(temp, "cov")) spatial_aggregation_method = COV_POOLING;
+		else if (!strcmp(temp, "mean")) spatial_aggregation_method = MEAN_POOLING;
+		else
+        {
+            fprintf(stderr, "Error: Invalid spatial aggregation method: %s\n", temp);
+            print_usage(argc, argv);
+            return -1;
+        }
+    }
+	else{
+		window_type = COV_POOLING;
+    }
+
     try
     {
 #if MEM_LEAK_TEST_ENABLE
 		for(itr_ctr=0;itr_ctr<1000;itr_ctr++)
 		{
 			getMemory(itr_ctr,1);
-			ret = run_wrapper(fmt, width, height, ref_path, dis_path, window_type, window_len, window_stride, d2h);
+			ret = run_wrapper(fmt, width, height, ref_path, dis_path, window_type, window_len, window_stride, d2h, spatial_aggregation_method);
 			getMemory(itr_ctr,2);
 		}
 #else
-		return run_wrapper(fmt, width, height, ref_path, dis_path, window_type, window_len, window_stride, d2h);
+		return run_wrapper(fmt, width, height, ref_path, dis_path, window_type, window_len, window_stride, d2h, spatial_aggregation_method);
 #endif
     }
     catch (const std::exception &e)

@@ -135,7 +135,7 @@ IQA_INLINE static double _calc_structure(float sigma_12, double sigma_comb_12, f
 }
 
 /* _iqa_ssim */
-float _iqa_ssim(float *ref, float *cmp, int w, int h, const struct _kernel *k,
+float _iqa_ssim(float *ref, float *cmp, int w, int h, const struct _kernel *k, const int spatial_aggregation_method,
 		const struct _map_reduce *mr, const struct iqa_ssim_args *args
 		, float *l_mean, float *c_mean, float *s_mean)
 {
@@ -239,7 +239,6 @@ float _iqa_ssim(float *ref, float *cmp, int w, int h, const struct _kernel *k,
     for (y=0; y<h; ++y) {
         offset = y*w;
         for (x=0; x<w; ++x, ++offset) {
-
             if (!args) {
                 /* zli-nflx: */
                 sigma_ref_sigma_cmp = sqrt(ref_sigma_sqd[offset] * cmp_sigma_sqd[offset]);
@@ -251,7 +250,9 @@ float _iqa_ssim(float *ref, float *cmp, int w, int h, const struct _kernel *k,
                 l_sum += l;
                 c_sum += c;
                 s_sum += s;
-				ssim_sqd_sum += ssim_val * ssim_val;
+				if (spatial_aggregation_method == COV_POOLING){
+					ssim_sqd_sum += ssim_val * ssim_val;
+				}
             }
             else {
                 /* User tweaked alpha, beta, or gamma */
@@ -286,10 +287,12 @@ float _iqa_ssim(float *ref, float *cmp, int w, int h, const struct _kernel *k,
     	*l_mean = (float)(l_sum / (double)(w*h)); /* zli-nflx */
     	*c_mean = (float)(c_sum / (double)(w*h)); /* zli-nflx */
     	*s_mean = (float)(s_sum / (double)(w*h)); /* zli-nflx */
-		ssim_std_sum = sqrt(MAX(w*h*ssim_sqd_sum - ssim_sum*ssim_sum, 0.0)); /* Clip values to zero to avoid sqrt of negative values */
-		return (float)(ssim_std_sum/ssim_sum);
-		// return (float)(ssim_std_sum / (double)(w*h));
-        // return (float)(ssim_sum / (double)(w*h));
+		if (spatial_aggregation_method == COV_POOLING){
+			ssim_std_sum = sqrt(MAX(w*h*ssim_sqd_sum - ssim_sum*ssim_sum, 0.0)); /* Clip values to zero to avoid sqrt of negative values */
+			return (float)(ssim_std_sum/ssim_sum);
+		}
+		else
+			return (float)(ssim_sum / (double)(w*h));
     }
     return mr->reduce(w, h, mr->context);
 }
