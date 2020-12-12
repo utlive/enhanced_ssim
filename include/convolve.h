@@ -59,7 +59,7 @@ struct _kernel {
     int normalized;         /**< 1 if the kernel values add up to 1. 0 otherwise */
     _iqa_get_pixel bnd_opt; /**< Defines how out-of-bounds image values are handled */
     float bnd_const;        /**< If 'bnd_opt' is KBND_CONSTANT, this specifies the out-of-bounds value */
-	int stride; 			/**< The kernel stride */
+    int stride; 			/**< The kernel stride */
 };
 
 /**

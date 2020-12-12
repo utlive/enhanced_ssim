@@ -54,10 +54,10 @@ static void print_usage(int argc, char *argv[])
     fprintf(stderr, "Usage: %s fmt width height ref_path dis_path [--window-type window_type] [--window-len window_len] [--window-stride window_stride] [--distance-to-height-ratio d2h] [--spatial-aggregation-method] spatial_aggregation_method\n", argv[0]);
     fprintf(stderr, "fmt:\n\tyuv420p\n\tyuv422p\n\tyuv444p\n\tyuv420p10le\n\tyuv422p10le\n\tyuv444p10le\n\tyuv420p12le\n\tyuv422p12le\n\tyuv444p12le\n\tyuv420p16le\n\tyuv422p16le\n\tyuv444p16le\n\n");
     fprintf(stderr, "window_type: ffmpeg_square\n\tgaussian\n\tcustom_square (default)\n\n");
-	fprintf(stderr, "window_len: 1 <= window_len <= min(width, height) (default: 11)\n\n");
-	fprintf(stderr, "window_stride: window_stride >= 1 (default)\n\n");
-	fprintf(stderr, "d2h: d2h > 0 (default: 6.0)\n\n");
-	fprintf(stderr, "spatial_aggregation_method: mean, cov (default)\n\n");
+    fprintf(stderr, "window_len: 1 <= window_len <= min(width, height) (default: 11)\n\n");
+    fprintf(stderr, "window_stride: window_stride >= 1 (default)\n\n");
+    fprintf(stderr, "d2h: d2h > 0 (default: 6.0)\n\n");
+    fprintf(stderr, "spatial_aggregation_method: mean, cov (default)\n\n");
 }
 
 #if MEM_LEAK_TEST_ENABLE
@@ -67,39 +67,39 @@ static void print_usage(int argc, char *argv[])
  */
 static void getMemory(int itr_ctr, int state)
 {
-	int currRealMem;
-	int peakRealMem;
-	int currVirtMem;
-	int peakVirtMem;
-	char state_str[10]="";
+    int currRealMem;
+    int peakRealMem;
+    int currVirtMem;
+    int peakVirtMem;
+    char state_str[10]="";
     // stores each word in status file
     char buffer[1024] = "";
-	
-	if(state ==1)
-		strcpy(state_str,"start");
-	else
-		strcpy(state_str,"end");
-		
+
+    if(state ==1)
+        strcpy(state_str,"start");
+    else
+        strcpy(state_str,"end");
+
     // linux file contains this-process info
     FILE* file = fopen("/proc/self/status", "r");
 
     // read the entire file
     while (fscanf(file, " %1023s", buffer) == 1)
-	{
+    {
         if (strcmp(buffer, "VmRSS:") == 0)
-		{
+        {
             fscanf(file, " %d", &currRealMem);
         }
         if (strcmp(buffer, "VmHWM:") == 0)
-		{
+        {
             fscanf(file, " %d", &peakRealMem);
         }
         if (strcmp(buffer, "VmSize:") == 0)
-		{
+        {
             fscanf(file, " %d", &currVirtMem);
         }
         if (strcmp(buffer, "VmPeak:") == 0)
-		{
+        {
             fscanf(file, " %d", &peakVirtMem);
         }
     }
@@ -112,11 +112,11 @@ static int run_wrapper(char *fmt, int width, int height, char *ref_path, char *d
 {
     int ret = 0;
     struct data *s;
-	size_t data_stride = 0;
-	size_t data_sz = 0;
-	float* ref_buf = 0;
+    size_t data_stride = 0;
+    size_t data_sz = 0;
+    float* ref_buf = 0;
     float* dis_buf = 0;
-	float* temp_buf = 0;
+    float* temp_buf = 0;
     double* fr_scores = 0;
     float ssim_score = 0;
     s = (struct data *)malloc(sizeof(struct data));
@@ -179,7 +179,7 @@ static int run_wrapper(char *fmt, int width, int height, char *ref_path, char *d
             if (!strcmp(fmt, "yuv420p10le") || !strcmp(fmt, "yuv422p10le") || !strcmp(fmt, "yuv444p10le")
                 || !strcmp(fmt, "yuv420p12le") || !strcmp(fmt, "yuv422p12le") || !strcmp(fmt, "yuv444p12le")
                 || !strcmp(fmt, "yuv420p16le") || !strcmp(fmt, "yuv422p16le") || !strcmp(fmt, "yuv444p16le")
-            )
+                )
             {
                 frame_size *= 2;
             }
@@ -196,38 +196,38 @@ static int run_wrapper(char *fmt, int width, int height, char *ref_path, char *d
         s->num_frames = -1;
     }
 
-	if (s->num_frames <= 0)
-		goto fail_or_end;
+    if (s->num_frames <= 0)
+        goto fail_or_end;
 
-	data_stride = width * sizeof(float);
-	data_sz = (size_t)data_stride * height;
+    data_stride = width * sizeof(float);
+    data_sz = (size_t)data_stride * height;
 
-	ref_buf = (float*)aligned_malloc(data_sz, MAX_ALIGN);
-	dis_buf = (float*)aligned_malloc(data_sz, MAX_ALIGN);
-	temp_buf = (float*)aligned_malloc(2*data_sz, MAX_ALIGN); // Used to store u and v components by read_frame
-	fr_scores = (double*)aligned_malloc(s->num_frames*sizeof(double), MAX_ALIGN);
+    ref_buf = (float*)aligned_malloc(data_sz, MAX_ALIGN);
+    dis_buf = (float*)aligned_malloc(data_sz, MAX_ALIGN);
+    temp_buf = (float*)aligned_malloc(2*data_sz, MAX_ALIGN); // Used to store u and v components by read_frame
+    fr_scores = (double*)aligned_malloc(s->num_frames*sizeof(double), MAX_ALIGN);
 
-	if (!ref_buf || !dis_buf || !temp_buf || !fr_scores){
-		fprintf(stderr, "aligned malloc failed to allocate memory for ref, dis and temp.\n");
-		goto fail_or_end;
+    if (!ref_buf || !dis_buf || !temp_buf || !fr_scores){
+        fprintf(stderr, "aligned malloc failed to allocate memory for ref, dis and temp.\n");
+        goto fail_or_end;
     }
 
-	for (int frame = 0; frame < s->num_frames; ++frame){
-	    ret = read_frame(ref_buf, dis_buf, temp_buf, data_stride, s);
-		if (ret){
-		    fprintf(stderr, "Error reading frame from file,\n");
-			goto fail_or_end;
-		}
-		ret = compute_ssim(ref_buf, dis_buf, s->width, s->height, data_stride, data_stride, window_type, window_len, window_stride, d2h, spatial_aggregation_method, fr_scores + frame, 0, 0, 0, (frame == s->num_frames-1)); /* Clear windows after the last frame */
-		if (ret){
-		    fprintf(stderr, "compute ssim failed.\n");
-			goto fail_or_end;
-		}
-	}
+    for (int frame = 0; frame < s->num_frames; ++frame){
+        ret = read_frame(ref_buf, dis_buf, temp_buf, data_stride, s);
+        if (ret){
+            fprintf(stderr, "Error reading frame from file,\n");
+            goto fail_or_end;
+        }
+        ret = compute_ssim(ref_buf, dis_buf, s->width, s->height, data_stride, data_stride, window_type, window_len, window_stride, d2h, spatial_aggregation_method, fr_scores + frame, 0, 0, 0, (frame == s->num_frames-1)); /* Clear windows after the last frame */
+        if (ret){
+            fprintf(stderr, "compute ssim failed.\n");
+            goto fail_or_end;
+        }
+    }
 
-	ssim_score = 0;
+    ssim_score = 0;
     for (int frame = 0; frame < s->num_frames; ++frame) ssim_score += fr_scores[frame];
-	ssim_score /= s->num_frames;
+    ssim_score /= s->num_frames;
     printf("SSIM: %f\n", ssim_score);
 
 fail_or_end:
@@ -243,22 +243,22 @@ fail_or_end:
     {
         free(s);
     }
-	if (ref_buf)
+    if (ref_buf)
     {
-		aligned_free(ref_buf);
+        aligned_free(ref_buf);
     }
-	if (dis_buf)
+    if (dis_buf)
     {
-		aligned_free(dis_buf);
+        aligned_free(dis_buf);
     }
-	if (temp_buf)
+    if (temp_buf)
     {
-		aligned_free(temp_buf);
+        aligned_free(temp_buf);
     }
-	if (fr_scores)
+    if (fr_scores)
     {
-	    aligned_free(fr_scores);
-	}
+        aligned_free(fr_scores);
+    }
     return ret;
 }
 
@@ -270,16 +270,16 @@ int main(int argc, char *argv[])
     int height;
     char* ref_path;
     char* dis_path;
-	int window_type;
-	int window_len;
-	int window_stride;
-	float d2h;
-	int spatial_aggregation_method;
+    int window_type;
+    int window_len;
+    int window_stride;
+    float d2h;
+    int spatial_aggregation_method;
 #if MEM_LEAK_TEST_ENABLE	
-	int itr_ctr;
-	int ret = 0;
+    int itr_ctr;
+    int ret = 0;
 #endif
-	char *temp;
+    char *temp;
 
     /* Check parameters */
     /* Usage: %s fmt width height ref_path dis_path [--window-type window_type] [--window-len window_len] [--window-stride window_stride] [--scale-method scale_method] */
@@ -316,18 +316,18 @@ int main(int argc, char *argv[])
     temp = getCmdOption(argv + 6, argv + argc, "--window-type");
     if (temp)
     {
-		if (!strcmp(temp, "ffmpeg_square")) window_type = FFMPEG_SQUARE;
-		else if (!strcmp(temp, "gaussian")) window_type = GAUSSIAN;
-		else if (!strcmp(temp, "custom_square")) window_type = CUSTOM_SQUARE;
-		else
+        if (!strcmp(temp, "ffmpeg_square")) window_type = FFMPEG_SQUARE;
+        else if (!strcmp(temp, "gaussian")) window_type = GAUSSIAN;
+        else if (!strcmp(temp, "custom_square")) window_type = CUSTOM_SQUARE;
+        else
         {
             fprintf(stderr, "Error: Invalid window type: %s\n", temp);
             print_usage(argc, argv);
             return -1;
         }
     }
-	else{
-		window_type = CUSTOM_SQUARE;
+    else{
+        window_type = CUSTOM_SQUARE;
     }
 
     temp = getCmdOption(argv + 6, argv + argc, "--window-len");
@@ -344,8 +344,8 @@ int main(int argc, char *argv[])
             return -1;
         }
     }
-	else{
-		window_len = (window_type == FFMPEG_SQUARE)? 8: 11;
+    else{
+        window_len = (window_type == FFMPEG_SQUARE)? 8: 11;
     }
 
     if (window_len <= 0 || window_len > std::max(width, height))
@@ -354,17 +354,17 @@ int main(int argc, char *argv[])
         print_usage(argc, argv);
         return -1;
     }
-	
-	if (window_type == FFMPEG_SQUARE && window_len != 8){
-		fprintf(stderr, "Warning: FFMPEG window must be of size 8. Ignoring input.");	
-		window_len = 8;
-	}
-	else if (window_type == GAUSSIAN && window_len != 11){
-		fprintf(stderr, "Warning: Gaussian window must be of size 11. Ignoring input.");	
-		window_len = 11;
-	}
 
-	temp = getCmdOption(argv + 6, argv + argc, "--window-stride");
+    if (window_type == FFMPEG_SQUARE && window_len != 8){
+        fprintf(stderr, "Warning: FFMPEG window must be of size 8. Ignoring input.");
+        window_len = 8;
+    }
+    else if (window_type == GAUSSIAN && window_len != 11){
+        fprintf(stderr, "Warning: Gaussian window must be of size 11. Ignoring input.");
+        window_len = 11;
+    }
+
+    temp = getCmdOption(argv + 6, argv + argc, "--window-stride");
     if (temp)
     {
         try
@@ -378,8 +378,8 @@ int main(int argc, char *argv[])
             return -1;
         }
     }
-	else{
-		window_stride = 1;
+    else{
+        window_stride = 1;
     }
 
     if (window_stride <= 0)
@@ -389,12 +389,12 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-	if (window_type != CUSTOM_SQUARE && window_len != 8){
-		fprintf(stderr, "Warning: Only custom window can have a stride greater than 1. Ignoring input.");	
-		window_stride = 8;
-	}
+    if (window_type != CUSTOM_SQUARE && window_len != 8){
+        fprintf(stderr, "Warning: Only custom window can have a stride greater than 1. Ignoring input.");
+        window_stride = 8;
+    }
 
-	temp = getCmdOption(argv + 6, argv + argc, "--distance-to-height-ratio");
+    temp = getCmdOption(argv + 6, argv + argc, "--distance-to-height-ratio");
     if (temp)
     {
         try
@@ -408,8 +408,8 @@ int main(int argc, char *argv[])
             return -1;
         }
     }
-	else{
-		d2h = 6.0;
+    else{
+        d2h = 6.0;
     }
 
     if (d2h <= 0)
@@ -422,30 +422,30 @@ int main(int argc, char *argv[])
     temp = getCmdOption(argv + 6, argv + argc, "--spatial-aggregation-method");
     if (temp)
     {
-		if (!strcmp(temp, "cov")) spatial_aggregation_method = COV_POOLING;
-		else if (!strcmp(temp, "mean")) spatial_aggregation_method = MEAN_POOLING;
-		else
+        if (!strcmp(temp, "cov")) spatial_aggregation_method = COV_POOLING;
+        else if (!strcmp(temp, "mean")) spatial_aggregation_method = MEAN_POOLING;
+        else
         {
             fprintf(stderr, "Error: Invalid spatial aggregation method: %s\n", temp);
             print_usage(argc, argv);
             return -1;
         }
     }
-	else{
-		window_type = COV_POOLING;
+    else{
+        window_type = COV_POOLING;
     }
 
     try
     {
 #if MEM_LEAK_TEST_ENABLE
-		for(itr_ctr=0;itr_ctr<1000;itr_ctr++)
-		{
-			getMemory(itr_ctr,1);
-			ret = run_wrapper(fmt, width, height, ref_path, dis_path, window_type, window_len, window_stride, d2h, spatial_aggregation_method);
-			getMemory(itr_ctr,2);
-		}
+        for(itr_ctr=0;itr_ctr<1000;itr_ctr++)
+        {
+            getMemory(itr_ctr,1);
+            ret = run_wrapper(fmt, width, height, ref_path, dis_path, window_type, window_len, window_stride, d2h, spatial_aggregation_method);
+            getMemory(itr_ctr,2);
+        }
 #else
-		return run_wrapper(fmt, width, height, ref_path, dis_path, window_type, window_len, window_stride, d2h, spatial_aggregation_method);
+        return run_wrapper(fmt, width, height, ref_path, dis_path, window_type, window_len, window_stride, d2h, spatial_aggregation_method);
 #endif
     }
     catch (const std::exception &e)
@@ -454,5 +454,5 @@ int main(int argc, char *argv[])
         print_usage(argc, argv);
         return -1;
     }
-    
+
 }

@@ -52,7 +52,7 @@ int _iqa_decimate(float *img, int w, int h, int factor, const struct _kernel *k,
             dst[dst_offset] = _iqa_filter_pixel(img, w, h, x*factor, y*factor, k, 1.0f);
         }
     }
-    
+
     if (rw) *rw = sw;
     if (rh) *rh = sh;
     return 0;

@@ -46,4 +46,3 @@ int read_noref_frame(float *dis_data, float *temp_data, int stride_byte, void *s
 int get_frame_offset(const char *fmt, int w, int h, size_t *offset);
 
 #endif /* READ_FRAME_H_ */
-

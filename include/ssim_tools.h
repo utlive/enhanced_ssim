@@ -65,11 +65,11 @@ static const float g_gaussian_window[GAUSSIAN_LEN][GAUSSIAN_LEN] = {
 };
 
 static const float g_gaussian_window_h[GAUSSIAN_LEN] = {
-	0.001028f, 0.007599f, 0.036001f, 0.109361f, 0.213006f, 0.266012f, 0.213006f, 0.109361f, 0.036001f, 0.007599f, 0.001028f
+    0.001028f, 0.007599f, 0.036001f, 0.109361f, 0.213006f, 0.266012f, 0.213006f, 0.109361f, 0.036001f, 0.007599f, 0.001028f
 };
 
 static const float g_gaussian_window_v[GAUSSIAN_LEN] = {
-	0.001028f, 0.007599f, 0.036001f, 0.109361f, 0.213006f, 0.266012f, 0.213006f, 0.109361f, 0.036001f, 0.007599f, 0.001028f
+    0.001028f, 0.007599f, 0.036001f, 0.109361f, 0.213006f, 0.266012f, 0.213006f, 0.109361f, 0.036001f, 0.007599f, 0.001028f
 };
 
 /*
@@ -89,11 +89,11 @@ static const float g_square_window[SQUARE_LEN][SQUARE_LEN] = {
 };
 
 static const float g_square_window_h[SQUARE_LEN] = {
-	0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f
+    0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f
 };
 
 static const float g_square_window_v[SQUARE_LEN] = {
-	0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f
+    0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f
 };
 
 /* Helper functions to create and destroy custom windows */

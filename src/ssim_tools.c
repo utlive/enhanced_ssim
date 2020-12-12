@@ -50,39 +50,39 @@
 void _clear_custom_window(int *window_len, float **window, float **window_h, float **window_v)
 {
     if (*window) free(*window);
-	if (*window_h) free(*window_h);
-	if (*window_v) free(*window_v);
+    if (*window_h) free(*window_h);
+    if (*window_v) free(*window_v);
 
-	/* Setting pointers to 0 now that they have been freed */
-	*window = 0;
-	*window_h = 0;
-	*window_v = 0;
+    /* Setting pointers to 0 now that they have been freed */
+    *window = 0;
+    *window_h = 0;
+    *window_v = 0;
 
-	/* Setting window length to 0 now that the windows have been freed */
-	*window_len = 0;
+    /* Setting window length to 0 now that the windows have been freed */
+    *window_len = 0;
 }
 
 /* Initialize custom rectangular windows to use with _iqa_convolve */
 int _init_custom_window(int window_len, float **window, float **window_h, float **window_v)
 {
     *window = 0;
-	*window_h = 0;
-	*window_v = 0;
+    *window_h = 0;
+    *window_v = 0;
 
     *window = (float*)malloc(window_len*window_len*sizeof(float));
     *window_h = (float*)malloc(window_len*sizeof(float));
     *window_v = (float*)malloc(window_len*sizeof(float));
 
-	if (!(*window) || !(*window_h) || !(*window_v))
-		goto init_window_fail;
+    if (!(*window) || !(*window_h) || !(*window_v))
+        goto init_window_fail;
 
     return 0;
 
 init_window_fail:
     _clear_custom_window(&window_len, window, window_h, window_v);
     printf("error: failed to malloc custom window.\n");
-	fflush(stdout);
-	return 1;
+    fflush(stdout);
+    return 1;
 }
 
 /* _calc_luminance */
@@ -170,12 +170,12 @@ float _iqa_ssim(float *ref, float *cmp, int w, int h, const struct _kernel *k, c
 
     ref_mu = (float*)malloc(w*h*sizeof(float));
     cmp_mu = (float*)malloc(w*h*sizeof(float));
-	ref_sigma_sqd = (float*)malloc(w*h*sizeof(float));
+    ref_sigma_sqd = (float*)malloc(w*h*sizeof(float));
     cmp_sigma_sqd = (float*)malloc(w*h*sizeof(float));
     sigma_both = (float*)malloc(w*h*sizeof(float));
 
     if (!ref_mu || !cmp_mu || !ref_sigma_sqd || !cmp_sigma_sqd || !sigma_both) {
-		if (ref_mu) free(ref_mu);
+        if (ref_mu) free(ref_mu);
         if (cmp_mu) free(cmp_mu);
         if (ref_sigma_sqd) free(ref_sigma_sqd);
         if (cmp_sigma_sqd) free(cmp_sigma_sqd);
@@ -184,15 +184,15 @@ float _iqa_ssim(float *ref, float *cmp, int w, int h, const struct _kernel *k, c
     }
 
     /* Calculate means. If k has an explicit kernel, convolve, else use integral image. */
-	if (k->kernel){
+    if (k->kernel){
         _iqa_convolve(ref, w, h, k, ref_mu, 0, 0);
         _iqa_convolve(cmp, w, h, k, cmp_mu, 0, 0);
     }
-	else{
+    else{
         _iqa_integral_image_mean(ref, w, h, k, ref_mu, 0, 0);
         _iqa_integral_image_mean(cmp, w, h, k, cmp_mu, 0, 0);
-	}
-    
+    }
+
     for (y=0; y<h; ++y) {
         offset = y*w;
         for (x=0; x<w; ++x, ++offset) {
@@ -204,17 +204,17 @@ float _iqa_ssim(float *ref, float *cmp, int w, int h, const struct _kernel *k, c
 
     /* Calculate sigma */
     if (k->kernel){
-	    _iqa_convolve(ref_sigma_sqd, w, h, k, 0, 0, 0);
+        _iqa_convolve(ref_sigma_sqd, w, h, k, 0, 0, 0);
         _iqa_convolve(cmp_sigma_sqd, w, h, k, 0, 0, 0);
         _iqa_convolve(sigma_both,    w, h, k, 0, &w, &h); /* Update the width and height */
     }
-	else{
+    else{
         _iqa_integral_image_mean(ref_sigma_sqd, w, h, k, 0, 0, 0);
         _iqa_integral_image_mean(cmp_sigma_sqd, w, h, k, 0, 0, 0);
         _iqa_integral_image_mean(sigma_both, w, h, k, 0, &w, &h); /* Update the width and height */
     }
 
-	/* The convolution results are smaller by the kernel width and height, and divided by the stride */
+    /* The convolution results are smaller by the kernel width and height, and divided by the stride */
     for (y=0; y<h; ++y) {
         offset = y*w;
         for (x=0; x<w; ++x, ++offset) {
@@ -223,16 +223,16 @@ float _iqa_ssim(float *ref, float *cmp, int w, int h, const struct _kernel *k, c
 
             ref_sigma_sqd[offset] = MAX(0.0, ref_sigma_sqd[offset]); /* zli-nflx */
             cmp_sigma_sqd[offset] = MAX(0.0, cmp_sigma_sqd[offset]); /* zli-nflx */
-			
-			if (!ref_sigma_sqd[offset] || !cmp_sigma_sqd[offset]) /* Abhinau. If either variance is 0, theoretically, we cannot have a non-zero covariance */
-				sigma_both[offset] = 0.0;
-		    else
-				sigma_both[offset] -= ref_mu[offset] * cmp_mu[offset];
-		}
+
+            if (!ref_sigma_sqd[offset] || !cmp_sigma_sqd[offset]) /* Abhinau. If either variance is 0, theoretically, we cannot have a non-zero covariance */
+                sigma_both[offset] = 0.0;
+            else
+                sigma_both[offset] -= ref_mu[offset] * cmp_mu[offset];
+        }
     }
 
     ssim_sum = 0.0;
-	ssim_sqd_sum = 0.0;
+    ssim_sqd_sum = 0.0;
     l_sum = 0.0; /* zli-nflx */
     c_sum = 0.0; /* zli-nflx */
     s_sum = 0.0; /* zli-nflx */
@@ -245,14 +245,14 @@ float _iqa_ssim(float *ref, float *cmp, int w, int h, const struct _kernel *k, c
                 l = (2.0 * ref_mu[offset] * cmp_mu[offset] + C1) / (ref_mu[offset]*ref_mu[offset] + cmp_mu[offset]*cmp_mu[offset] + C1);
                 c = (2.0 * sigma_ref_sigma_cmp + C2) /  (ref_sigma_sqd[offset] + cmp_sigma_sqd[offset] + C2);
                 s = (sigma_both[offset] + C2 / 2.0) / (sigma_ref_sigma_cmp + C2 / 2.0);
-				ssim_val = l * c * s;
+                ssim_val = l * c * s;
                 ssim_sum += ssim_val;
                 l_sum += l;
                 c_sum += c;
                 s_sum += s;
-				if (spatial_aggregation_method == COV_POOLING){
-					ssim_sqd_sum += ssim_val * ssim_val;
-				}
+                if (spatial_aggregation_method == COV_POOLING){
+                    ssim_sqd_sum += ssim_val * ssim_val;
+                }
             }
             else {
                 /* User tweaked alpha, beta, or gamma */
@@ -284,15 +284,15 @@ float _iqa_ssim(float *ref, float *cmp, int w, int h, const struct _kernel *k, c
     free(cmp_sigma_sqd);
     free(sigma_both);
     if (!args) {
-    	*l_mean = (float)(l_sum / (double)(w*h)); /* zli-nflx */
-    	*c_mean = (float)(c_sum / (double)(w*h)); /* zli-nflx */
-    	*s_mean = (float)(s_sum / (double)(w*h)); /* zli-nflx */
-		if (spatial_aggregation_method == COV_POOLING){
-			ssim_std_sum = sqrt(MAX(w*h*ssim_sqd_sum - ssim_sum*ssim_sum, 0.0)); /* Clip values to zero to avoid sqrt of negative values */
-			return (float)(ssim_std_sum/ssim_sum);
-		}
-		else
-			return (float)(ssim_sum / (double)(w*h));
+        *l_mean = (float)(l_sum / (double)(w*h)); /* zli-nflx */
+        *c_mean = (float)(c_sum / (double)(w*h)); /* zli-nflx */
+        *s_mean = (float)(s_sum / (double)(w*h)); /* zli-nflx */
+        if (spatial_aggregation_method == COV_POOLING){
+            ssim_std_sum = sqrt(MAX(w*h*ssim_sqd_sum - ssim_sum*ssim_sum, 0.0)); /* Clip values to zero to avoid sqrt of negative values */
+            return (float)(ssim_std_sum/ssim_sum);
+        }
+        else
+            return (float)(ssim_sum / (double)(w*h));
     }
     return mr->reduce(w, h, mr->context);
 }

@@ -29,26 +29,26 @@
  */
 static int read_image(FILE *rfile, void *buf, int width, int height, int stride, int elem_size)
 {
-	char *byte_ptr = (char*)buf;
-	int i;
-	int ret = 1;
+    char *byte_ptr = (char*)buf;
+    int i;
+    int ret = 1;
 
-	if (width <= 0 || height <= 0 || elem_size <= 0)
-	{
-		goto fail_or_end;
-	}
+    if (width <= 0 || height <= 0 || elem_size <= 0)
+    {
+        goto fail_or_end;
+    }
 
-	for (i = 0; i < height; ++i)
-	{
-		if (fread(byte_ptr, elem_size, width, rfile) != (size_t)width)
-		{
-			goto fail_or_end;
-		}
+    for (i = 0; i < height; ++i)
+    {
+        if (fread(byte_ptr, elem_size, width, rfile) != (size_t)width)
+        {
+            goto fail_or_end;
+        }
 
-		byte_ptr += stride;
-	}
+        byte_ptr += stride;
+    }
 
-	ret = 0;
+    ret = 0;
 
 fail_or_end:
 	return ret;
@@ -59,43 +59,43 @@ fail_or_end:
  */
 static int read_image_b(FILE * rfile, float *buf, float off, int width, int height, int stride)
 {
-	char *byte_ptr = (char *)buf;
-	unsigned char *tmp_buf = 0;
-	int i, j;
-	int ret = 1;
+    char *byte_ptr = (char *)buf;
+    unsigned char *tmp_buf = 0;
+    int i, j;
+    int ret = 1;
 
-	if (width <= 0 || height <= 0)
-	{
-		goto fail_or_end;
-	}
+    if (width <= 0 || height <= 0)
+    {
+        goto fail_or_end;
+    }
 
-	if (!(tmp_buf = (unsigned char*)malloc(width)))
-	{
-		goto fail_or_end;
-	}
+    if (!(tmp_buf = (unsigned char*)malloc(width)))
+    {
+        goto fail_or_end;
+    }
 
-	for (i = 0; i < height; ++i)
-	{
-		float *row_ptr = (float *)byte_ptr;
+    for (i = 0; i < height; ++i)
+    {
+        float *row_ptr = (float *)byte_ptr;
 
-		if (fread(tmp_buf, 1, width, rfile) != (size_t)width)
-		{
-			goto fail_or_end;
-		}
+        if (fread(tmp_buf, 1, width, rfile) != (size_t)width)
+        {
+            goto fail_or_end;
+        }
 
-		for (j = 0; j < width; ++j)
-		{
-			row_ptr[j] = tmp_buf[j] + off;
-		}
+        for (j = 0; j < width; ++j)
+        {
+            row_ptr[j] = tmp_buf[j] + off;
+        }
 
-		byte_ptr += stride;
-	}
+        byte_ptr += stride;
+    }
 
-	ret = 0;
+    ret = 0;
 
 fail_or_end:
-	free(tmp_buf);
-	return ret;
+    free(tmp_buf);
+    return ret;
 }
 
 /**
@@ -103,49 +103,47 @@ fail_or_end:
  */
 static int read_image_w(FILE * rfile, float *buf, float off, int width, int height, int stride, float scaler)
 {
-	// make sure unsigned short is 2 bytes
-	assert(sizeof(unsigned short) == 2);
+    // make sure unsigned short is 2 bytes
+    assert(sizeof(unsigned short) == 2);
 
-	char *byte_ptr = (char *)buf;
-	unsigned short *tmp_buf = 0;
-	int i, j;
-	int ret = 1;
+    char *byte_ptr = (char *)buf;
+    unsigned short *tmp_buf = 0;
+    int i, j;
+    int ret = 1;
 
-	if (width <= 0 || height <= 0)
-	{
-		goto fail_or_end;
-	}
+    if (width <= 0 || height <= 0)
+    {
+        goto fail_or_end;
+    }
 
-	if (!(tmp_buf = (unsigned short*)malloc(width * 2))) // '*2' to accommodate words
-	{
-		goto fail_or_end;
-	}
+    if (!(tmp_buf = (unsigned short*)malloc(width * 2))) // '*2' to accommodate words
+    {
+        goto fail_or_end;
+    }
 
-	for (i = 0; i < height; ++i)
-	{
-		float *row_ptr = (float *)byte_ptr;
+    for (i = 0; i < height; ++i)
+    {
+        float *row_ptr = (float *)byte_ptr;
 
-		if (fread(tmp_buf, 2, width, rfile) != (size_t)width) // '2' for word
-		{
-			goto fail_or_end;
-		}
-
-		for (j = 0; j < width; ++j)
-		{
-			row_ptr[j] = tmp_buf[j] / scaler + off; // '/4' to convert from x-bit to 8-bit
+        if (fread(tmp_buf, 2, width, rfile) != (size_t)width) // '2' for word
+        {
+            goto fail_or_end;
         }
 
-		byte_ptr += stride;
-	}
+        for (j = 0; j < width; ++j)
+        {
+            row_ptr[j] = tmp_buf[j] / scaler + off; // '/4' to convert from x-bit to 8-bit
+        }
 
-	ret = 0;
+        byte_ptr += stride;
+    }
+
+    ret = 0;
 
 fail_or_end:
-	free(tmp_buf);
-	return ret;
+    free(tmp_buf);
+    return ret;
 }
-
-static int completed_frames = 0;
 
 int read_frame(float *ref_data, float *dis_data, float *temp_data, int stride_byte, void *s)
 {
@@ -227,8 +225,8 @@ int read_frame(float *ref_data, float *dis_data, float *temp_data, int stride_by
         }
     }
     else if (!strcmp(fmt, "yuv420p10le") || !strcmp(fmt, "yuv422p10le") || !strcmp(fmt, "yuv444p10le") ||
-             !strcmp(fmt, "yuv420p12le") || !strcmp(fmt, "yuv422p12le") || !strcmp(fmt, "yuv444p12le") ||
-             !strcmp(fmt, "yuv420p16le") || !strcmp(fmt, "yuv422p16le") || !strcmp(fmt, "yuv444p16le")
+                !strcmp(fmt, "yuv420p12le") || !strcmp(fmt, "yuv422p12le") || !strcmp(fmt, "yuv444p12le") ||
+                !strcmp(fmt, "yuv420p16le") || !strcmp(fmt, "yuv422p16le") || !strcmp(fmt, "yuv444p16le")
             )
     {
         if (fread(temp_data, 2, user_data->offset, user_data->ref_rfile) != (size_t)user_data->offset)
@@ -324,7 +322,7 @@ int read_noref_frame(float *dis_data, float *temp_data, int stride_byte, void *s
     else if (!strcmp(fmt, "yuv420p10le") || !strcmp(fmt, "yuv422p10le") || !strcmp(fmt, "yuv444p10le") ||
             !strcmp(fmt, "yuv420p12le") || !strcmp(fmt, "yuv422p12le") || !strcmp(fmt, "yuv444p12le") ||
             !strcmp(fmt, "yuv420p16le") || !strcmp(fmt, "yuv422p16le") || !strcmp(fmt, "yuv444p16le")
-             )
+            )
     {
         if (fread(temp_data, 2, user_data->offset, user_data->dis_rfile) != (size_t)user_data->offset)
         {
@@ -337,7 +335,6 @@ int read_noref_frame(float *dis_data, float *temp_data, int stride_byte, void *s
         fprintf(stderr, "unknown format %s.\n", fmt);
         goto fail_or_end;
     }
-
 
 fail_or_end:
     return ret;
