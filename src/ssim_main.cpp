@@ -13,6 +13,9 @@
  *     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *     See the License for the specific language governing permissions and
  *     limitations under the License.
+ * 
+ *  (12/24/2020) Updated by abhinaukumar (abhinaukumar@utexas.edu) to simplify the
+ *  input pipeline and add options according to the Enhanced SSIM algorithm.
  *
  */
 

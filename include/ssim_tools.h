@@ -32,6 +32,9 @@
  *
  * (06/10/2016) Updated by zli-nflx (zli@netflix.com) to output mean luminence,
  * contrast and structure.
+ * 
+ * (12/24/2020) Updated by abhinaukumar (abhinaukumar@utexas.edu) to add helper
+ * functions for custom windows, and _ssim_ctx for CoV pooling.
  */
 
 #ifndef _SSIM_TOOLS_H_

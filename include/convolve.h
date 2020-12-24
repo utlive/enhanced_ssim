@@ -29,6 +29,9 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * (12/24/2020) Updated by abhinaukumar (abhinaukumar@utexas.edu) to add 
+ * _iqa_integral_image_mean, CUSTOM_SQUARE window type, and stride to _kernel.
  */
 
 #ifndef _CONVOLVE_H_

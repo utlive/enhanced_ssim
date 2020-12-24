@@ -29,6 +29,9 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * (12/24/2020) Updated by wuchengyangcn (chengyangwu@utexas.edu) to add d2h to
+ * iqa_ssim_args.
  */
 
 #ifndef _IQA_H_

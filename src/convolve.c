@@ -31,6 +31,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  * (06/10/2016) Updated by zli-nflx (zli@netflix.com) to optimize _iqa_convolve.
+ * 
+ * (12/24/2020) Updated by abhinaukumar (abhinaukumar@utexas.edu) to add 
+ * _iqa_integral_image_mean and clarify _iqa_convolve.
  */
 
 #include <stdio.h>

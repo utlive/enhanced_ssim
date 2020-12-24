@@ -14,6 +14,10 @@
  *     See the License for the specific language governing permissions and
  *     limitations under the License.
  *
+ *  (12/24/2020) Updated by abhinaukumar (abhinaukumar@utexas.edu) to perform CoV
+ *  pooling.
+ *  (12/24/2020) Updated by wuchengyangcn (chengyangwu@utexas.edu) to add adaptive
+ *  scaling.
  */
 
 #include <stdio.h>

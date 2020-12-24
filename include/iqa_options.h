@@ -14,6 +14,8 @@
  *     See the License for the specific language governing permissions and
  *     limitations under the License.
  *
+ * (12/24/2020) Updated by abhinaukumar (abhinaukumar@utexas.edu) to add pooling
+ * options and integral image option.
  */
 
 #pragma once
