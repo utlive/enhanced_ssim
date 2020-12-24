@@ -1,4 +1,4 @@
-# Hitchhiker's SSIM
+# Enhanced SSIM
 This repository is a C implementation of SSIM based on the recommendations made in "A Hitchhiker's Guide to SSIM". A major part of this code has been forked from the implementation of SSIM in Netflix's VMAF repository [1], and we have made changes to reflect our recommendations which improve performance and efficiency.
 
 List of improvements over basline SSIM.
