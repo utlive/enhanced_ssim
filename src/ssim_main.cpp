@@ -356,11 +356,11 @@ int main(int argc, char *argv[])
     }
 
     if (window_type == FFMPEG_SQUARE && window_len != 8){
-        fprintf(stderr, "Warning: FFMPEG window must be of size 8. Ignoring input.");
+        fprintf(stderr, "Warning: FFMPEG window must be of size 8. Ignoring input.\n");
         window_len = 8;
     }
     else if (window_type == GAUSSIAN && window_len != 11){
-        fprintf(stderr, "Warning: Gaussian window must be of size 11. Ignoring input.");
+        fprintf(stderr, "Warning: Gaussian window must be of size 11. Ignoring input.\n");
         window_len = 11;
     }
 
@@ -389,9 +389,9 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    if (window_type != CUSTOM_SQUARE && window_len != 8){
-        fprintf(stderr, "Warning: Only custom window can have a stride greater than 1. Ignoring input.");
-        window_stride = 8;
+    if (window_type != CUSTOM_SQUARE && window_stride > 1){
+        fprintf(stderr, "Warning: Only custom window can have a stride greater than 1. Ignoring input.\n");
+        window_stride = 1;
     }
 
     temp = getCmdOption(argv + 6, argv + argc, "--distance-to-height-ratio");
