@@ -7,6 +7,10 @@ List of improvements over basline SSIM.
 3. Uses Coefficient of Variation for spatial pooling, which we found to perform better than the baseline arithmetic mean pooling.
 4. Viewing distance and device type are accounted for by using a Self-Adaptive Scale Transform (SAST) [2], instead of a constant scaling factor.
 
+This code accompanies the following paper.
+
+A. K. Venkataramanan, C. Wu, A. C. Bovik, I. Katsavounidis and Z. Shahid, "A Hitchhiker's Guide to Structural Similarity". Submitted to IEEE Access.
+
 # References:
 [1] https://www.github.com/Netflix/vmaf/
 
