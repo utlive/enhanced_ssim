@@ -75,8 +75,8 @@ void _iqa_integral_image_mean(float *img, int w, int h, const struct _kernel *k,
 	int window_stride = k->stride;
 
 	/* Compute the dimensions of the 'mean map' */
-	int dst_w = (w - window_len + 1)/window_stride;
-	int dst_h = (h - window_len + 1)/window_stride;
+	int dst_w = (w - window_len)/window_stride + 1;
+	int dst_h = (h - window_len)/window_stride + 1;
 
 	long double *integral_img = (long double*)malloc((w+1)*(h+1)*sizeof(long double));
 	if (!integral_img){
