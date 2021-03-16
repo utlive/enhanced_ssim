@@ -54,13 +54,14 @@ static bool cmdOptionExists(char** begin, char** end, const std::string& option)
 
 static void print_usage(int argc, char *argv[])
 {
-    fprintf(stderr, "Usage: %s fmt width height ref_path dis_path [--window-type window_type] [--window-len window_len] [--window-stride window_stride] [--distance-to-height-ratio d2h] [--spatial-aggregation-method] spatial_aggregation_method\n", argv[0]);
+    fprintf(stderr, "Usage: %s fmt width height ref_path dis_path [--window-type window_type] [--window-len window_len] [--window-stride window_stride] [--distance-to-height-ratio d2h] [--spatial-aggregation-method spatial_aggregation_method] [--log-path log_path]\n", argv[0]);
     fprintf(stderr, "fmt:\n\tyuv420p\n\tyuv422p\n\tyuv444p\n\tyuv420p10le\n\tyuv422p10le\n\tyuv444p10le\n\tyuv420p12le\n\tyuv422p12le\n\tyuv444p12le\n\tyuv420p16le\n\tyuv422p16le\n\tyuv444p16le\n\n");
     fprintf(stderr, "window_type: ffmpeg_square\n\tgaussian\n\tcustom_square (default)\n\n");
     fprintf(stderr, "window_len: 1 <= window_len <= min(width, height) (default: 11)\n\n");
     fprintf(stderr, "window_stride: window_stride >= 1 (default)\n\n");
     fprintf(stderr, "d2h: d2h > 0 (default: 6.0)\n\n");
     fprintf(stderr, "spatial_aggregation_method: mean, cov (default)\n\n");
+    fprintf(stderr, "log_path: path_to_log_file\n\n");
 }
 
 #if MEM_LEAK_TEST_ENABLE
@@ -111,7 +112,7 @@ static void getMemory(int itr_ctr, int state)
 }
 #endif
 
-static int run_wrapper(char *fmt, int width, int height, char *ref_path, char *dis_path, int window_type, int window_len, int window_stride, float d2h, int spatial_aggregation_method)
+static int run_wrapper(char *fmt, int width, int height, char *ref_path, char *dis_path, int window_type, int window_len, int window_stride, float d2h, int spatial_aggregation_method, char* log_path)
 {
     int ret = 0;
     struct data *s;
@@ -231,7 +232,23 @@ static int run_wrapper(char *fmt, int width, int height, char *ref_path, char *d
     ssim_score = 0;
     for (int frame = 0; frame < s->num_frames; ++frame) ssim_score += fr_scores[frame];
     ssim_score /= s->num_frames;
-    printf("SSIM: %f\n", ssim_score);
+
+	if (log_path){
+		printf("Writing to log file..\n");
+		FILE *log_file = fopen(log_path, "w");
+		if (!log_file){
+			printf("Failed to open log file.\n");
+			goto fail_or_end;
+		}
+		else{
+			for (int frame = 0; frame < s->num_frames; ++frame) fprintf(log_file, "Frame %d: %f\n", frame, fr_scores[frame]);
+			fprintf(log_file, "Total: %f", ssim_score);
+		}
+	}
+	else{
+		printf("SSIM: %f\n", ssim_score);
+	}
+
 
 fail_or_end:
     if (s->ref_rfile)
@@ -278,6 +295,7 @@ int main(int argc, char *argv[])
     int window_stride;
     float d2h;
     int spatial_aggregation_method;
+    char *log_path;
 #if MEM_LEAK_TEST_ENABLE	
     int itr_ctr;
     int ret = 0;
@@ -438,6 +456,8 @@ int main(int argc, char *argv[])
         window_type = COV_POOLING;
     }
 
+	log_path = getCmdOption(argv + 6, argv + argc, "--log-path");
+
     try
     {
 #if MEM_LEAK_TEST_ENABLE
@@ -448,7 +468,7 @@ int main(int argc, char *argv[])
             getMemory(itr_ctr,2);
         }
 #else
-        return run_wrapper(fmt, width, height, ref_path, dis_path, window_type, window_len, window_stride, d2h, spatial_aggregation_method);
+        return run_wrapper(fmt, width, height, ref_path, dis_path, window_type, window_len, window_stride, d2h, spatial_aggregation_method, log_path);
 #endif
     }
     catch (const std::exception &e)
