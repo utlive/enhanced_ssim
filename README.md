@@ -9,7 +9,7 @@ List of improvements over basline SSIM.
 
 This code accompanies the following paper.
 
-A. K. Venkataramanan, C. Wu, A. C. Bovik, I. Katsavounidis and Z. Shahid, "A Hitchhiker's Guide to Structural Similarity". Submitted to IEEE Access.
+A. K. Venkataramanan, C. Wu, A. C. Bovik, I. Katsavounidis and Z. Shahid, "A Hitchhiker’s Guide to Structural Similarity," in IEEE Access, vol. 9, pp. 28872-28896, 2021, doi: 10.1109/ACCESS.2021.3056504.
 
 # References:
 [1] https://www.github.com/Netflix/vmaf/
